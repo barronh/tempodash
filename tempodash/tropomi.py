@@ -1,4 +1,7 @@
-__all__ = ['gettropomi', 'get_tropomi_chunk', 'pairtropomi']
+__all__ = [
+    'open_tropomi', 'open_tropomi_chunk', 'get_tropomi_chunk', 'pair_tropomi',
+    'make_intx'
+]
 
 _coordkeys = [
     'Longitude_SW', 'Latitude_SW',
@@ -9,27 +12,80 @@ _coordkeys = [
 ]
 
 
-def makeplots(lockey, spc, bdate, edate, update=False):
+def make_intx(lockey, spc, bdate, edate):
+    import pandas as pd
     import os
+
+    bdate = pd.to_datetime(bdate, utc=True)
+    edate = pd.to_datetime(edate, utc=True)
+    ixpath = f'locations/{lockey}/store/tropomi_{spc}_v2.csv'
+    metapath = f'locations/{lockey}/store/tropomi_{spc}_v2_meta.csv'
+
+    if os.path.exists(metapath) and os.path.exists(ixpath):
+        metadf = pd.read_csv(metapath)
+        pre_bdate = bdate
+        pre_edate = pd.to_datetime(metadf['bdate'].min(), utc=True)
+        post_bdate = pd.to_datetime(metadf['edate'].max(), utc=True)
+        post_edate = edate
+        ixdfs = [pd.read_csv(ixpath)]
+    else:
+        metadf = pd.DataFrame(dict(
+            bdate=[], edate=[], updated=[], action=[]
+        ))
+        pre_bdate = bdate
+        pre_edate = edate
+        post_bdate = edate
+        post_edate = edate
+        ixdfs = []
+
+    updated = False
+    if pre_bdate < pre_edate:
+        opts = dict(lockey=lockey, spc=spc, bdate=pre_bdate, edate=pre_edate)
+        try:
+            ixdf = pair_tropomi(**opts)
+            ixdfs.insert(0, ixdf)
+            updated = True
+        except ValueError:
+            pass
+
+    if post_bdate < post_edate:
+        opts = dict(lockey=lockey, spc=spc, bdate=post_bdate, edate=post_edate)
+        try:
+            ixdf = pair_tropomi(**opts)
+            ixdfs.append(ixdf)
+            updated = True
+        except ValueError:
+            pass
+
+    ixdf = pd.concat(ixdfs)
+    if updated:
+        now = pd.to_datetime('now', utc=True)
+        metadf = pd.concat([
+            metadf,
+            pd.DataFrame(dict(
+                bdate=[bdate], edate=[edate], updated=[now]
+            ))
+        ], ignore_index=True)
+        metadf.to_csv(metapath, index=False)
+        ixdf.to_csv(ixpath, index=False)
+
+    ixdf['tempo_time'] = pd.to_datetime(ixdf['tempo_time'])
+    ixdf['tropomi_time'] = pd.to_datetime(ixdf['tropomi_time'])
+    ixdf = ixdf.query(
+        f'tempo_time >= "{bdate:%Y-%m-%dT%H:%M:%S%z}"'
+        + f' and tempo_time <= "{edate:%Y-%m-%dT%H:%M:%S%z}"'
+    )
+    return ixdf
+
+
+def make_plots(lockey, spc, bdate, edate):
     import pandas as pd
 
     bdate = pd.to_datetime(bdate, utc=True)
     edate = pd.to_datetime(edate, utc=True)
     opts = dict(lockey=lockey, spc=spc, bdate=bdate, edate=edate)
-    pdf = gettropomi(**opts, rename=True, parse_dates=True)
-    ixpath = f'locations/{lockey}/store/tropomi_{spc}_v2.csv'
-    update = update or not os.path.exists(ixpath)
-    if update:
-        print(f'updating {ixpath}')
-        ixdf = pairtropomi(**opts)
-        ixdf.to_csv(ixpath, index=False)
-    ixdf = pd.read_csv(ixpath)
-    ixdf['tempo_time'] = pd.to_datetime(ixdf['tempo_time'])
-    ixdf['tropomi_time'] = pd.to_datetime(ixdf['pandora_time'])
-    ixdf = ixdf.query(
-        f'tempo_time >= "{bdate:%Y-%m-%dT%H:%M:%S%z}"'
-        + f' and tempo_time <= "{edate:%Y-%m-%dT%H:%M:%S%z}"'
-    )
+    pdf = open_tropomi(**opts, rename=True, parse_dates=True)
+    ixdf = make_intx(**opts)
     tkey = f'tempo_{spc}'
     if spc == 'no2':
         tkey = f'tempo_{spc}_sum'
@@ -75,7 +131,7 @@ def plot_scat(pairdf, spc, lockey):
     from scipy.stats.mstats import linregress
     import matplotlib.pyplot as plt
     from .odrfit import odrfit
-    from . import get_configs
+    from .util import get_configs
     import pycno
 
     cno = pycno.cno()
@@ -135,11 +191,11 @@ def plot_scat(pairdf, spc, lockey):
     fig.savefig(f'locations/{lockey}/figs/tropomi/{lockey}_{spc}_scat.png')
 
 
-def pairtropomi(lockey, spc, bdate, edate, freq='1h'):
+def pair_tropomi(lockey, spc, bdate, edate, freq='1h'):
     import pandas as pd
     import geopandas as gpd
-    from .tempo import gettempo
-    pdf = gettropomi(
+    from .tempo import open_tempo
+    pdf = open_tropomi(
         lockey, spc, bdate, edate, freq='1h', asgeo=True, rename=True,
         parse_dates=True
     )
@@ -149,7 +205,7 @@ def pairtropomi(lockey, spc, bdate, edate, freq='1h'):
     for bhour in bhours:
         ehour = bhour + dt
         try:
-            tdf = gettempo(
+            tdf = open_tempo(
                 lockey, spc, bhour, ehour, asgeo=True, rename=True,
                 parse_dates=True
             )
@@ -169,29 +225,24 @@ def pairtropomi(lockey, spc, bdate, edate, freq='1h'):
     return ixdf[keepcols]
 
 
-def gettropomi(
+def open_tropomi(
     lockey, spc, bdate, edate, freq='1h', asgeo=False, parse_dates=False,
     rename=False
 ):
     import pandas as pd
-    import pyrsig
-    from . import get_configs, server
+    from .util import get_configs
     cfg = get_configs()[lockey]
-    bbox = cfg['bbox']
 
     bhours = pd.date_range(bdate, edate, freq='1h')
-    hours = cfg['hours']
+    hours = cfg['tropomi_hours']
 
     dt = pd.to_timedelta(freq) - pd.to_timedelta('1s')
     dfs = []
     for bhour in bhours:
         if bhour.hour in hours:
-            workdir = f'locations/{lockey}/{bhour:%Y-%m-%d}'
-            api = pyrsig.RsigApi(bbox=bbox, workdir=workdir, server=server)
-            # api.tropomi_kw['minimum_quality'] = 'medium'
             ehour = bhour + dt
             try:
-                df = get_tropomi_chunk(api, spc, bhour, ehour)
+                df = open_tropomi_chunk(lockey, spc, bhour, ehour)
                 dfs.append(df)
             except pd.errors.EmptyDataError:
                 pass
@@ -215,7 +266,18 @@ def gettropomi(
     return df
 
 
-def get_tropomi_chunk(api, spc, bdate, edate, verbose=-1):
+def open_tropomi_chunk(lockey, spc, bdate, edate, verbose=-1):
+    import pyrsig
+    import pandas as pd
+    from .util import get_configs
+    from . import server
+
+    cfg = get_configs()[lockey]
+    bbox = cfg['bbox']
+    bdate = pd.to_datetime(bdate)
+    edate = pd.to_datetime(edate)
+    workdir = f'locations/{lockey}/{bdate:%Y-%m-%d}'
+    api = pyrsig.RsigApi(bbox=bbox, workdir=workdir, server=server)
     if spc == 'no2':
         tomikey = 'tropomi.nrti.no2.nitrogendioxide_tropospheric_column'
     elif spc == 'hcho':
@@ -228,3 +290,32 @@ def get_tropomi_chunk(api, spc, bdate, edate, verbose=-1):
         tomikey, bdate=bdate, edate=edate, unit_keys=False, verbose=verbose
     )
     return tdf
+
+
+def get_tropomi_chunk(lockey, spc, bdate, edate, verbose=-1):
+    import pyrsig
+    import pandas as pd
+    from .util import get_configs
+    from . import server
+
+    cfg = get_configs()[lockey]
+    bbox = cfg['bbox']
+    hours = cfg['tropomi_hours']
+    bdate = pd.to_datetime(bdate)
+    if bdate.hour not in hours:
+        return
+    edate = pd.to_datetime(edate)
+    workdir = f'locations/{lockey}/{bdate:%Y-%m-%d}'
+    api = pyrsig.RsigApi(bbox=bbox, workdir=workdir, server=server)
+    if spc == 'no2':
+        tomikey = 'tropomi.nrti.no2.nitrogendioxide_tropospheric_column'
+    elif spc == 'hcho':
+        tomikey = 'tropomi.nrti.hcho.formaldehyde_tropospheric_vertical_column'
+    else:
+        raise KeyError(f'spc must be no2 or hcho: got {spc}')
+
+    # Try to get either/both
+    api.get_file(
+        'ascii', key=tomikey, bdate=bdate, edate=edate, bbox=bbox, corners=1,
+        compress=1, verbose=verbose, overwrite=False
+    )

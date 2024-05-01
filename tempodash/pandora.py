@@ -1,10 +1,10 @@
-__all__ = ['getpandora', 'get_pandora_chunk', 'pairpandora']
+__all__ = ['open_pandora', 'open_pandora_chunk', 'pair_pandora', 'make_intx']
 
 
-def makeplots(
-    lockey, spc, bdate, edate, buffer=0.03, withins=900, update=False
+def make_intx(
+    lockey, spc, bdate, edate, buffer=0.03, withins=900, pdf=None
 ):
-    from . import get_configs
+    from .util import get_configs
     import pandas as pd
     import os
 
@@ -12,25 +12,87 @@ def makeplots(
     edate = pd.to_datetime(edate, utc=True)
     cfg = get_configs()[lockey]
     pid = cfg['pandoraid'][0]
-    opts = dict(lockey=lockey, spc=spc, bdate=bdate, edate=edate)
-    pdf = getpandora(**opts, rename=True, parse_dates=True).query(
-        f'pandora_station == {pid}'
-    )
     ixpath = f'locations/{lockey}/store/pandora_{spc}_{buffer:.2f}_v2.csv'
-    update = update or not os.path.exists(ixpath)
-    if update:
-        print(f'updating {ixpath}')
-        ixdf = pairpandora(
-            **opts, buffer=buffer, withins=withins
-        ).query(f'pandora_station == {pid}')
+    metapath = (
+        f'locations/{lockey}/store/'
+        + f'pandora_{spc}_{buffer:.2f}_v2_meta.csv'
+    )
+
+    if os.path.exists(metapath) and os.path.exists(ixpath):
+        metadf = pd.read_csv(metapath)
+        ixdf = pd.read_csv(ixpath)
+        pre_bdate = bdate
+        pre_edate = pd.to_datetime(metadf['bdate'].min(), utc=True)
+        post_bdate = pd.to_datetime(metadf['edate'].max(), utc=True)
+        post_edate = edate
+        ixdfs = [ixdf]
+    else:
+        metadf = pd.DataFrame(dict(
+            bdate=[], edate=[], updated=[], action=[]
+        ))
+        pre_bdate = bdate
+        pre_edate = edate
+        post_bdate = edate
+        post_edate = edate
+        ixdfs = []
+
+    updated = False
+    if pre_bdate < pre_edate:
+        opts = dict(lockey=lockey, spc=spc, bdate=pre_bdate, edate=pre_edate)
+        try:
+            ixdf = pair_pandora(
+                **opts, buffer=buffer, withins=withins, pdf=pdf
+            ).query(f'pandora_station == {pid}')
+            ixdfs.insert(0, ixdf)
+            updated = True
+        except ValueError:
+            pass
+
+    if post_bdate < post_edate:
+        opts = dict(lockey=lockey, spc=spc, bdate=post_bdate, edate=post_edate)
+        try:
+            ixdf = pair_pandora(
+                **opts, buffer=buffer, withins=withins, pdf=pdf
+            ).query(f'pandora_station == {pid}')
+            ixdfs.append(ixdf)
+            updated = True
+        except ValueError:
+            pass
+
+    ixdf = pd.concat(ixdfs)
+    if updated:
+        now = pd.to_datetime('now', utc=True)
+        metadf = pd.concat([
+            metadf,
+            pd.DataFrame(dict(
+                bdate=[bdate], edate=[edate], updated=[now]
+            ))
+        ], ignore_index=True)
+        metadf.to_csv(metapath, index=False)
         ixdf.to_csv(ixpath, index=False)
-    ixdf = pd.read_csv(ixpath)
+
     ixdf['tempo_time'] = pd.to_datetime(ixdf['tempo_time'])
     ixdf['pandora_time'] = pd.to_datetime(ixdf['pandora_time'])
     ixdf = ixdf.query(
         f'tempo_time >= "{bdate:%Y-%m-%dT%H:%M:%S%z}"'
         + f' and tempo_time <= "{edate:%Y-%m-%dT%H:%M:%S%z}"'
     )
+    return ixdf
+
+
+def make_plots(lockey, spc, bdate, edate, buffer=0.03, withins=900):
+    from .util import get_configs
+    import pandas as pd
+
+    bdate = pd.to_datetime(bdate, utc=True)
+    edate = pd.to_datetime(edate, utc=True)
+    cfg = get_configs()[lockey]
+    pid = cfg['pandoraid'][0]
+    opts = dict(lockey=lockey, spc=spc, bdate=bdate, edate=edate)
+    pdf = open_pandora(**opts, rename=True, parse_dates=True).query(
+        f'pandora_station == {pid}'
+    )
+    ixdf = make_intx(**opts, buffer=buffer, withins=withins, pdf=pdf)
     tkey = f'tempo_{spc}'
     if spc == 'no2':
         tkey += '_sum'
@@ -109,7 +171,7 @@ def plot_scat(pairdf, spc, lockey):
     from scipy.stats.mstats import linregress
     from .odrfit import odrfit
     import matplotlib.pyplot as plt
-    from . import get_configs
+    from .util import get_configs
     import pycno
 
     cno = pycno.cno()
@@ -170,17 +232,18 @@ def plot_scat(pairdf, spc, lockey):
     fig.savefig(f'locations/{lockey}/figs/pandora/{lockey}_{spc}_scat.png')
 
 
-def pairpandora(
-    lockey, spc, bdate, edate, freq='1h', withins=900, buffer=0.03
+def pair_pandora(
+    lockey, spc, bdate, edate, freq='1h', withins=900, buffer=0.03, pdf=None
 ):
     import pandas as pd
     import geopandas as gpd
-    from . import get_configs
-    from .tempo import gettempo
+    from .util import get_configs
+    from .tempo import open_tempo
     hours = get_configs()[lockey]['hours']
-    pdf = getpandora(
-        lockey, spc, bdate, edate, freq='1h', asgeo=True, rename=True
-    )
+    if pdf is None:
+        pdf = open_pandora(
+            lockey, spc, bdate, edate, freq='1h', asgeo=True, rename=True
+        )
     pdf['pandora_time'] = pd.to_datetime(pdf['Timestamp'])
     if buffer is not None:
         import warnings
@@ -195,8 +258,16 @@ def pairpandora(
         if bhour.hour not in hours:
             continue
         ehour = bhour + dt
+        lbt = bhour - withindt
+        ubt = ehour + withindt
+        pchnk = pdf.query(
+            f'pandora_time >= "{lbt:%Y-%m-%dT%H:%M:%S%z}"'
+            + f' and pandora_time <= "{ubt:%Y-%m-%dT%H:%M:%S%z}"'
+        )
+        if pchnk.shape[0] == 0:
+            continue
         try:
-            tdf = gettempo(
+            tdf = open_tempo(
                 lockey, spc, bhour, ehour, asgeo=True, rename=True,
                 parse_dates=True
             )
@@ -205,12 +276,6 @@ def pairpandora(
             continue
         if tdf.shape[0] == 0:
             continue
-        lbt = bhour - withindt
-        ubt = ehour + withindt
-        pchnk = pdf.query(
-            f'pandora_time >= "{lbt:%Y-%m-%dT%H:%M:%S%z}"'
-            + f' and pandora_time <= "{ubt:%Y-%m-%dT%H:%M:%S%z}"'
-        )
         ixdf = gpd.overlay(pchnk, tdf)
         if ixdf.shape[0] == 0:
             continue
@@ -227,13 +292,14 @@ def pairpandora(
     return ixdf[keepcols]
 
 
-def getpandora(
+def open_pandora(
     lockey, spc, bdate, edate, freq='1h', asgeo=False, parse_dates=False,
     rename=False, minq='medium'
 ):
     import pyrsig
     import pandas as pd
-    from . import get_configs, server
+    from .util import get_configs
+    from . import server
     cfg = get_configs()[lockey]
     bbox = cfg['bbox']
     if spc == 'no2':
@@ -266,52 +332,7 @@ def getpandora(
     return df
 
 
-def _getpandora(
-    lockey, spc, bdate, edate, freq='1h', asgeo=False, parse_dates=False,
-    rename=False
-):
-    import pyrsig
-    import pandas as pd
-    from . import get_configs, server
-    cfg = get_configs()[lockey]
-    bbox = cfg['bbox']
-
-    bhours = pd.date_range(bdate, edate, freq=freq)
-    hours = cfg['hours']
-
-    dt = pd.to_timedelta(freq) - pd.to_timedelta('1s')
-    dfs = []
-    for bhour in bhours:
-        if bhour.hour in hours:
-            workdir = f'locations/{lockey}/{bhour:%Y-%m-%d}'
-            api = pyrsig.RsigApi(bbox=bbox, workdir=workdir, server=server)
-            api.pandora_kw['minimum_quality'] = 'medium'
-            ehour = bhour + dt
-            try:
-                df = get_pandora_chunk(api, spc, bhour, ehour)
-                dfs.append(df)
-            except pd.errors.EmptyDataError:
-                pass
-
-    df = pd.concat(dfs)
-    if parse_dates:
-        df['pandora_time'] = pd.to_datetime(df['Timestamp'])
-    if asgeo:
-        import geopandas as gpd
-        geom = gpd.points_from_xy(df['LONGITUDE'], df['LATITUDE'])
-        df = gpd.GeoDataFrame(df, geometry=geom, crs=4326)
-    if rename:
-        df.rename(columns=dict(
-            LONGITUDE='pandora_lon', LATITUDE='pandora_lat',
-            ELEVATION='pandora_alt', STATION='pandora_station',
-            nitrogen_dioxide_vertical_column_amount='pandora_no2',
-            formaldehyde_total_vertical_column_amount='pandora_hcho',
-        ), inplace=True)
-
-    return df
-
-
-def get_pandora_chunk(api, spc, bdate, edate, verbose=-1):
+def open_pandora_chunk(api, spc, bdate, edate, verbose=-1):
     if spc == 'no2':
         pkey = 'pandora.L2_rnvs3p1_8.nitrogen_dioxide_vertical_column_amount'
     elif spc == 'hcho':

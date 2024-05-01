@@ -1,28 +1,87 @@
-__all__ = ['getairnow', 'get_airnow_chunk', 'pairairnow']
+__all__ = [
+    'open_airnow', 'open_airnow_chunk', 'get_airnow_chunk', 'pair_airnow',
+    'make_intx'
+]
 
 
-def makeplots(lockey, spc, bdate, edate, buffer=0.03, update=False):
-    import os
+def make_intx(lockey, spc, bdate, edate, buffer=0.03):
     import pandas as pd
+    import os
 
     bdate = pd.to_datetime(bdate, utc=True)
     edate = pd.to_datetime(edate, utc=True)
-    opts = dict(lockey=lockey, spc=spc, bdate=bdate, edate=edate)
-    pdf = getairnow(**opts, rename=True, parse_dates=True)
-    ixpath = f'locations/{lockey}/store/airnow_{spc}_{buffer:.02f}_v2.csv'
-    update = update or not os.path.exists(ixpath)
-    if update:
-        print(f'updating {ixpath}')
-        ixdf = pairairnow(**opts, buffer=buffer)
+
+    ixpath = f'locations/{lockey}/store/airnow_{spc}_{buffer:.2f}_v2.csv'
+    metapath = (
+        f'locations/{lockey}/store/'
+        + f'airnow_{spc}_{buffer:.2f}_v2_meta.csv'
+    )
+
+    if os.path.exists(metapath) and os.path.exists(ixpath):
+        metadf = pd.read_csv(metapath)
+        pre_bdate = bdate
+        pre_edate = pd.to_datetime(metadf['bdate'].min(), utc=True)
+        post_bdate = pd.to_datetime(metadf['edate'].max(), utc=True)
+        post_edate = edate
+        ixdfs = [pd.read_csv(ixpath)]
+    else:
+        metadf = pd.DataFrame(dict(
+            bdate=[], edate=[], updated=[], action=[]
+        ))
+        pre_bdate = bdate
+        pre_edate = edate
+        post_bdate = edate
+        post_edate = edate
+        ixdfs = []
+
+    updated = False
+    if pre_bdate < pre_edate:
+        opts = dict(lockey=lockey, spc=spc, bdate=pre_bdate, edate=pre_edate)
+        try:
+            ixdf = pair_airnow(**opts, buffer=buffer)
+            ixdfs.insert(0, ixdf)
+            updated = True
+        except ValueError:
+            pass
+
+    if post_bdate < post_edate:
+        opts = dict(lockey=lockey, spc=spc, bdate=post_bdate, edate=post_edate)
+        try:
+            ixdf = pair_airnow(**opts, buffer=buffer)
+            ixdfs.append(ixdf)
+            updated = True
+        except ValueError:
+            pass
+
+    ixdf = pd.concat(ixdfs)
+    if updated:
+        now = pd.to_datetime('now', utc=True)
+        metadf = pd.concat([
+            metadf,
+            pd.DataFrame(dict(
+                bdate=[bdate], edate=[edate], updated=[now]
+            ))
+        ], ignore_index=True)
+        metadf.to_csv(metapath, index=False)
         ixdf.to_csv(ixpath, index=False)
-    ixdf = pd.read_csv(ixpath)
+
     ixdf['tempo_time'] = pd.to_datetime(ixdf['tempo_time'])
     ixdf['airnow_time'] = pd.to_datetime(ixdf['airnow_time'])
     ixdf = ixdf.query(
         f'tempo_time >= "{bdate:%Y-%m-%dT%H:%M:%S%z}"'
         + f' and tempo_time <= "{edate:%Y-%m-%dT%H:%M:%S%z}"'
     )
+    return ixdf
 
+
+def makeplots(lockey, spc, bdate, edate, buffer=0.03, update=False):
+    import pandas as pd
+
+    bdate = pd.to_datetime(bdate, utc=True)
+    edate = pd.to_datetime(edate, utc=True)
+    opts = dict(lockey=lockey, spc=spc, bdate=bdate, edate=edate)
+    pdf = open_airnow(**opts, rename=True, parse_dates=True)
+    ixdf = make_intx(**opts, buffer=buffer, update=update)
     pairdf = ixdf.groupby(['tempo_time'], as_index=False).agg(
         airnow_lon=('airnow_lon', 'mean'),
         airnow_no2=('airnow_no2', 'mean'),
@@ -129,11 +188,11 @@ def plot_scat(pairdf, spc, lockey):
     fig.savefig(f'locations/{lockey}/figs/airnow/{lockey}_{spc}_scat.png')
 
 
-def pairairnow(lockey, spc, bdate, edate, freq='1h', buffer=0.03):
+def pair_airnow(lockey, spc, bdate, edate, freq='1h', buffer=0.03):
     import pandas as pd
     import geopandas as gpd
-    from .tempo import gettempo
-    adf = getairnow(
+    from .tempo import open_tempo
+    adf = open_airnow(
         lockey, spc, bdate, edate, freq='1h', asgeo=True, rename=True
     )
     adf['airnow_time'] = pd.to_datetime(adf['Timestamp'])
@@ -149,7 +208,7 @@ def pairairnow(lockey, spc, bdate, edate, freq='1h', buffer=0.03):
     for bhour in bhours:
         ehour = bhour + dt
         try:
-            tdf = gettempo(
+            tdf = open_tempo(
                 lockey, spc, bhour, ehour, asgeo=True, rename=True,
                 parse_dates=True
             )
@@ -175,15 +234,13 @@ def pairairnow(lockey, spc, bdate, edate, freq='1h', buffer=0.03):
     return ixdf[keepcols]
 
 
-def getairnow(
+def open_airnow(
     lockey, spc, bdate, edate, freq='1h', asgeo=False, parse_dates=False,
     rename=False
 ):
-    import pyrsig
     import pandas as pd
-    from . import get_configs, server
+    from .util import get_configs
     cfg = get_configs()[lockey]
-    bbox = cfg['bbox']
 
     bhours = pd.date_range(bdate, edate, freq=freq)
     hours = cfg['hours']
@@ -192,11 +249,9 @@ def getairnow(
     dfs = []
     for bhour in bhours:
         if bhour.hour in hours:
-            workdir = f'locations/{lockey}/{bhour:%Y-%m-%d}'
-            api = pyrsig.RsigApi(bbox=bbox, workdir=workdir, server=server)
             ehour = bhour + dt
             try:
-                df = get_airnow_chunk(api, spc, bhour, ehour)
+                df = open_airnow_chunk(lockey, spc, bhour, ehour)
                 dfs.append(df)
             except pd.errors.EmptyDataError:
                 pass
@@ -218,7 +273,18 @@ def getairnow(
     return df
 
 
-def get_airnow_chunk(api, spc, bdate, edate, verbose=-10):
+def open_airnow_chunk(lockey, spc, bdate, edate, verbose=-10):
+    import pyrsig
+    import pandas as pd
+    from .util import get_configs
+    from . import server
+    cfg = get_configs()[lockey]
+    bbox = cfg['bbox']
+    bdate = pd.to_datetime(bdate)
+    edate = pd.to_datetime(edate)
+    workdir = f'locations/{lockey}/{bdate:%Y-%m-%d}'
+    api = pyrsig.RsigApi(bbox=bbox, workdir=workdir, server=server)
+
     if spc == 'no2':
         akey = 'airnow.no2'
     else:
@@ -229,3 +295,31 @@ def get_airnow_chunk(api, spc, bdate, edate, verbose=-10):
         akey, bdate=bdate, edate=edate, unit_keys=False, verbose=verbose
     )
     return adf
+
+
+def get_airnow_chunk(lockey, spc, bdate, edate, verbose=-10):
+    import pyrsig
+    import pandas as pd
+    from .util import get_configs
+    from . import server
+    cfg = get_configs()[lockey]
+    bbox = cfg['bbox']
+    hours = cfg['hours']
+    bdate = pd.to_datetime(bdate)
+    if bdate.hour not in hours:
+        return
+
+    edate = pd.to_datetime(edate)
+    workdir = f'locations/{lockey}/{bdate:%Y-%m-%d}'
+    api = pyrsig.RsigApi(bbox=bbox, workdir=workdir, server=server)
+
+    if spc == 'no2':
+        akey = 'airnow.no2'
+    else:
+        raise KeyError(f'spc must be no2: got {spc}')
+
+    # Try to get either/both
+    api.get_file(
+        'ascii', key=akey, bdate=bdate, edate=edate, bbox=bbox, corners=1,
+        compress=1, verbose=verbose, overwrite=False
+    )
