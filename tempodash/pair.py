@@ -2,6 +2,22 @@ from . import cfg
 
 
 def openchunk(key, bdate, backend='xdr'):
+    """
+    Arguments
+    ---------
+    key : str
+        RSIG data key
+    bdate : datetime
+        must support strftime
+    backend : str
+        'xdr' or 'ascii'
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        loaded from pyrsig.RsigApi.to_dataframe
+    """
+
     source = key.split('.')[0]
     edate = bdate + cfg.data_dt
     cfg.api.workdir = f'data/{source}/{bdate:%Y-%m}'
@@ -17,6 +33,22 @@ def openchunk(key, bdate, backend='xdr'):
 
 
 def open_prod(prod, dates=None, verbose=0):
+    """
+    Arguments
+    ---------
+    prod : str
+        Compound product defined in cfg.proddef
+    dates : list
+        List of dates to be processed.
+    verbose : int
+        Level of verbosity
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        Individual keys loaded from pyrsig.RsigApi.to_dataframe
+        and combined to make a product level dataframe
+    """
     import geopandas as gpd
     import pandas as pd
     from shapely import polygons, points
@@ -70,9 +102,20 @@ def open_prod(prod, dates=None, verbose=0):
 
 def open_pandora(prod, verbose=1):
     """
-    prod = 'pandora.no2'
-    prod = 'pandora.hcho'
+    Arguments
+    ---------
+    prod : str
+        Compound product defined in cfg.proddef
+    verbose : int
+        Level of verbosity
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        Individual keys loaded from pyrsig.RsigApi.to_dataframe
+        and combined to make a product level dataframe
     """
+
     import geopandas as gpd
     import pandas as pd
     from shapely import points
@@ -93,10 +136,14 @@ def open_pandora(prod, verbose=1):
             key, bdate=bdate, edate=edate,
             unit_keys=False, backend='xdr', verbose=-1
         )
-        dfs.append(df.query(f'STATION == {pid}'))
+        if df.shape[0] > 0:
+            dfs.append(df.query(f'STATION == {pid}'))
 
     if verbose > 0:
         print('\nstack pandoara', end='.', flush=True)
+
+    if len(dfs) == 0:
+        return df
 
     df = pd.concat(dfs, ignore_index=True)
     if df.shape[1] > 0:
@@ -113,6 +160,21 @@ def open_pandora(prod, verbose=1):
 
 
 def makeintx(spc, dates=None, verbose=1):
+    """
+    Arguments
+    ---------
+    spc : str
+        'no2' or 'hcho'
+    dates : list
+        List of dates to be processed.
+    verbose : int
+        Level of verbosity
+
+    Returns
+    -------
+    None
+    """
+
     import pandas as pd
     import geopandas as gpd
     import time
@@ -142,17 +204,25 @@ def makeintx(spc, dates=None, verbose=1):
             f'intx/airnow/{bdate:%Y-%m}/airnow_intx_{spc}'
             + f'_{bdate:%Y-%m-%dT%H}.csv.gz'
         )
-        tixpath = (
-            f'intx/tropomi/{bdate:%Y-%m}/tropomi_intx_{spc}'
+        tnixpath = (
+            f'intx/tropomi/{bdate:%Y-%m}/tropomi_nrti_intx_{spc}'
             + f'_{bdate:%Y-%m-%dT%H}.csv.gz'
         )
-        for ixp in [pixpath, aixpath, tixpath]:
+        toixpath = (
+            f'intx/tropomi/{bdate:%Y-%m}/tropomi_offl_intx_{spc}'
+            + f'_{bdate:%Y-%m-%dT%H}.csv.gz'
+        )
+        for ixp in [pixpath, aixpath, tnixpath, toixpath]:
             os.makedirs(os.path.dirname(ixp), exist_ok=True)
 
         dopandora = not (exists(pixpath) and exists(pixpath))
-        dotropomi = (not exists(tixpath)) and (bdate.hour in cfg.tropomihours)
+        dotropomin = not exists(tnixpath) and bdate.hour in cfg.tropomihours
+        dotropomio = not exists(toixpath) and bdate.hour in cfg.tropomihours
         doairnow = not exists(aixpath) and spc == 'no2'
-        if not dopandora and not dotropomi and not doairnow:
+        if (
+            not dopandora and not doairnow
+            and not dotropomin and not dotropomio
+        ):
             continue
         if verbose > 0:
             print(bdate, spc, 'open tempo', end='...', flush=True)
@@ -197,20 +267,41 @@ def makeintx(spc, dates=None, verbose=1):
                 t1 = time.time()
                 if verbose > 0:
                     print(f'{t1 - t0:.1f}')
-        if dotropomi:
+        if dotropomin:
             if verbose > 0:
-                print(bdate, spc, 'open tropomi', flush=True)
+                print(bdate, spc, 'open tropomi nrti', flush=True)
             tdf = open_prod(f'tropomi.nrti.{spc}', dates=[bdate])
             if tdf.shape[0] == 0:
-                print(bdate, spc, 'no tropomi')
+                print(bdate, spc, 'no tropomi nrti')
             else:
                 if verbose > 0:
-                    print(bdate, spc, 'sjoin TropOMI', end='...', flush=True)
+                    print(
+                        bdate, spc, 'sjoin TropOMI nrti', end='...', flush=True
+                    )
                 t0 = time.time()
                 tixdf = gpd.sjoin(tdf, df, lsuffix='1', rsuffix='2')
                 renamer(tixdf, 'tropomi')
                 tixdf.drop(columns=['geometry', 'index_2'], inplace=True)
-                tixdf.to_csv(tixpath, index=False)
+                tixdf.to_csv(tnixpath, index=False)
+                t1 = time.time()
+                if verbose > 0:
+                    print(f'{t1 - t0:.1f}')
+        if dotropomio:
+            if verbose > 0:
+                print(bdate, spc, 'open tropomi offl', flush=True)
+            tdf = open_prod(f'tropomi.offl.{spc}', dates=[bdate])
+            if tdf.shape[0] == 0:
+                print(bdate, spc, 'no tropomi offl')
+            else:
+                if verbose > 0:
+                    print(
+                        bdate, spc, 'sjoin TropOMI offl', end='...', flush=True
+                    )
+                t0 = time.time()
+                tixdf = gpd.sjoin(tdf, df, lsuffix='1', rsuffix='2')
+                renamer(tixdf, 'tropomi')
+                tixdf.drop(columns=['geometry', 'index_2'], inplace=True)
+                tixdf.to_csv(toixpath, index=False)
                 t1 = time.time()
                 if verbose > 0:
                     print(f'{t1 - t0:.1f}')
@@ -234,6 +325,8 @@ def makeintx(spc, dates=None, verbose=1):
 
 
 def renamer(ixdf, source):
+    """
+    internal function for renaming columns; maybe move to cfg"""
     o2n = {
         'Timestamp_1': f'{source}_time',
         'LONGITUDE_1': f'{source}_lon',

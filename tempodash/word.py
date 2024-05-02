@@ -1,5 +1,4 @@
 __all__ = ['from_antype']
-import os
 import glob
 import time
 # from docx.enum.section import WD_ORIENT
@@ -132,19 +131,26 @@ def from_antype(antype, spc):
     if antype != 'airnow':
         doc.add_picture(f'figs/{antype}_{spc}_map_nmb.png', width=Inches(5.5))
     for lockey, cfg in cfgs.items():
+        lockey = lockey.replace('Pandora', '')
+        lockey = lockey.replace('Ozone_8-hr.2015.', '')
         if cfg.get(antype, False):
             doc.add_page_break()
             doc.add_heading(lockey, 1)
             imgpaths = glob.glob(
-                f'locations/{lockey}/figs/{antype}/*_{spc}_*.png'
+                f'/figs/{antype}_{spc}_{lockey}_*.png'
             )
-            imgpaths = [p for p in imgpaths if not p.endswith('_ss.png')]
+            imgpaths = [
+                p for p in imgpaths
+                if p.endswith('_ds.png') or p.endswith('_scat.png')
+            ]
             imgpaths = sorted(imgpaths, key=figsort)
             for ii, imgpath in enumerate(imgpaths):
-                if imgpath.endswith('_scat.png'):
-                    if ii > 0:
-                        doc.add_page_break()
-                    doc.add_heading(os.path.basename(imgpath)[:-9], 2)
+                # make subsection for Median and Mean... nah.
+                # if imgpath.endswith('_scat.png'):
+                #     if ii > 0:
+                #         doc.add_page_break()
+                #     tmphdr = imgpath.split('_')[-2]
+                #     doc.add_heading(tmphdr, 2)
                 doc.add_picture(imgpath, width=w)
 
     doc.save(f'docs/{antype}_{spc}.docx')

@@ -46,6 +46,8 @@ keycorners = {
     'tempo.l2.hcho.solar_zenith_angle': 0,
     'tropomi.nrti.no2.nitrogendioxide_tropospheric_column': 1,
     'tropomi.nrti.hcho.formaldehyde_tropospheric_vertical_column': 1,
+    'tropomi.offl.no2.nitrogendioxide_tropospheric_column': 1,
+    'tropomi.offl.hcho.formaldehyde_tropospheric_vertical_column': 1,
     'airnow.no2': 0,
     'pandora.L2_rnvs3p1_8.nitrogen_dioxide_vertical_column_amount': 0,
     'pandora.L2_rfus5p1_8.formaldehyde_total_vertical_column_amount': 0,
@@ -94,7 +96,18 @@ keycols = {
             'nitrogendioxide_tropospheric_column'
         ]
     ),
+    'tropomi.offl.no2.nitrogendioxide_tropospheric_column': (
+        idkeys + crnrkeys
+        + [
+            'nitrogendioxide_tropospheric_column'
+        ]
+    ),
     'tropomi.nrti.hcho.formaldehyde_tropospheric_vertical_column': (
+        idkeys + crnrkeys + [
+            'formaldehyde_tropospheric_vertical_column'
+        ]
+    ),
+    'tropomi.offl.hcho.formaldehyde_tropospheric_vertical_column': (
         idkeys + crnrkeys + [
             'formaldehyde_tropospheric_vertical_column'
         ]
@@ -132,8 +145,14 @@ proddef = {
     'tropomi.nrti.no2': [
         'tropomi.nrti.no2.nitrogendioxide_tropospheric_column',
     ],
+    'tropomi.offl.no2': [
+        'tropomi.offl.no2.nitrogendioxide_tropospheric_column',
+    ],
     'tropomi.nrti.hcho': [
         'tropomi.nrti.hcho.formaldehyde_tropospheric_vertical_column',
+    ],
+    'tropomi.offl.hcho': [
+        'tropomi.offl.hcho.formaldehyde_tropospheric_vertical_column',
     ],
     'airnow.no2': ['airnow.no2'],
     'pandora.no2': [
@@ -156,6 +175,8 @@ keys = [
     'tempo.l2.hcho.solar_zenith_angle',
     'tropomi.nrti.no2.nitrogendioxide_tropospheric_column',
     'tropomi.nrti.hcho.formaldehyde_tropospheric_vertical_column',
+    'tropomi.offl.no2.nitrogendioxide_tropospheric_column',
+    'tropomi.offl.hcho.formaldehyde_tropospheric_vertical_column',
     'airnow.no2',
     'pandora.L2_rnvs3p1_8.nitrogen_dioxide_vertical_column_amount',
     'pandora.L2_rfus5p1_8.formaldehyde_total_vertical_column_amount',
@@ -173,7 +194,7 @@ for k, cfg in configs.items():
     tropomihours.extend(cfg['tropomi_hours'])
 
 tropomihours = sorted(set(tropomihours))
-dates = pd.date_range('2023-10-17', '2024-04-21', freq='1h')
+dates = pd.date_range('2023-10-17T00Z', '2024-04-21T00Z', freq='1h')
 dates = [
     d for d in dates
     if d.hour in allhours and d.strftime('%Y-%m-%d') not in baddates
@@ -185,7 +206,8 @@ pandora_keys = [
 
 bbox_polys = [box(*c['bbox']) for ck, c in configs.items()]
 analysis_mpoly = prep(unary_union(bbox_polys))
-v1start = pd.to_datetime('2023-10-01T00')
-v2start = pd.to_datetime('2024-02-26T00')
+v1start = pd.to_datetime('2023-10-01T00', utc=True)
+v2start = pd.to_datetime('2024-02-26T00', utc=True)
 v1dates = [d for d in dates if d > v1start and d < v2start]
 v2dates = [d for d in dates if d > v2start or d < v1start]
+reftime = pd.to_datetime('1970-01-01T00Z')

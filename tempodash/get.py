@@ -2,6 +2,9 @@ __all__ = ['get']
 
 
 def get():
+    """
+    Gets all data in cfg.keys for all cfg.dates
+    """
     import time
     import os
     from . import cfg
