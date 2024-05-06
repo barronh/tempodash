@@ -119,39 +119,53 @@ def figsort(path):
 
 
 def from_antype(antype, spc):
+    import os
     from docx.shared import Inches
-    from . import get_configs
-    cfgs = get_configs()
+    from .cfg import configs as cfgs
     doc = new_doc(antype)
     sec = doc.sections[-1]
     w = (sec.page_width - sec.left_margin - sec.right_margin) * 0.98
     # doc.save(f'{antype}.docx')
     # print(bhh)
-    doc.add_picture(f'figs/{antype}_{spc}_summary.png', width=w)
+    doc.add_page_break()
+
+    paragraph = doc.add_paragraph()
+    if antype.startswith('tropomi'):
+        for qkey in ['all', 'v1', 'v2']:
+            run = paragraph.add_run()
+            run.add_picture(f'figs/{antype}_{spc}_{qkey}_summary_pandora.png', width=Inches(2.25))
+        for qkey in ['all', 'v1', 'v2']:
+            run = paragraph.add_run()
+            run.add_picture(f'figs/{antype}_{spc}_{qkey}_summary_ozone.png', width=Inches(2.25))
+    else:
+        for qkey in ['all', 'v1', 'v2']:
+            run = paragraph.add_run()
+            run.add_picture(f'figs/{antype}_{spc}_{qkey}_summary.png', width=Inches(2.25))
+    for qkey in ['all', 'v1', 'v2']:
+        run = paragraph.add_run()
+        run.add_picture(f'figs/{antype}_{spc}_{qkey}_all_scat.png', width=Inches(2.25))
     if antype != 'airnow':
-        doc.add_picture(f'figs/{antype}_{spc}_map_nmb.png', width=Inches(5.5))
+        for qkey in ['all', 'v1', 'v2']:
+            doc.add_picture(f'figs/{antype}_{spc}_{qkey}_map.png', width=Inches(7.5))
+    doc.add_page_break()
+    anchktype = antype.replace('_offl', '').replace('_nrti', '')
     for lockey, cfg in cfgs.items():
         lockey = lockey.replace('Pandora', '')
         lockey = lockey.replace('Ozone_8-hr.2015.', '')
-        if cfg.get(antype, False):
+        if cfg.get(anchktype, False):
             doc.add_page_break()
             doc.add_heading(lockey, 1)
-            imgpaths = glob.glob(
-                f'/figs/{antype}_{spc}_{lockey}_*.png'
-            )
-            imgpaths = [
-                p for p in imgpaths
-                if p.endswith('_ds.png') or p.endswith('_scat.png')
-            ]
-            imgpaths = sorted(imgpaths, key=figsort)
-            for ii, imgpath in enumerate(imgpaths):
-                # make subsection for Median and Mean... nah.
-                # if imgpath.endswith('_scat.png'):
-                #     if ii > 0:
-                #         doc.add_page_break()
-                #     tmphdr = imgpath.split('_')[-2]
-                #     doc.add_heading(tmphdr, 2)
-                doc.add_picture(imgpath, width=w)
+            paragraph = doc.add_paragraph()
+            for qkey in ['all', 'v1', 'v2']:
+                scatpath = f'figs/{antype}_{spc}_{qkey}_{lockey}_scat.png'
+                if os.path.exists(scatpath):
+                    run = paragraph.add_run()
+                    run.add_picture(scatpath, width=Inches(2.25))
+
+            for qkey in ['all', 'v1', 'v2']:
+                dspath = f'figs/{antype}_{spc}_{qkey}_{lockey}_ds.png'
+                if os.path.exists(dspath):
+                    doc.add_picture(dspath, height=Inches(2.15))
 
     doc.save(f'docs/{antype}_{spc}.docx')
 

@@ -194,7 +194,7 @@ for k, cfg in configs.items():
     tropomihours.extend(cfg['tropomi_hours'])
 
 tropomihours = sorted(set(tropomihours))
-dates = pd.date_range('2023-10-17T00Z', '2024-04-21T00Z', freq='1h')
+dates = pd.date_range('2023-10-17T00Z', '2024-04-26T00Z', freq='1h')
 dates = [
     d for d in dates
     if d.hour in allhours and d.strftime('%Y-%m-%d') not in baddates
