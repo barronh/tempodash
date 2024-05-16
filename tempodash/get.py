@@ -1,14 +1,16 @@
 __all__ = ['get']
 
 
-def get():
+def get(dates=None):
     """
     Gets all data in cfg.keys for all cfg.dates
     """
     import time
     import os
     from . import cfg
-    for bdate in cfg.dates:
+    if dates is None:
+        dates = cfg.dates
+    for bdate in dates:
         edate = bdate + cfg.data_dt
         opts = dict(bdate=bdate, edate=edate, compress=1, verbose=-10)
         for key in cfg.keys:
