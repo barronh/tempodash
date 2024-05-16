@@ -11,20 +11,46 @@ id2label = {
 }
 id2label.update({k: v.get('label', k) for k, v in cfg.configs.items()})
 
-pid2name = {
-    v.get('pandoraid', [-999])[0]: k.replace('Pandora', '')
+pid2key = {
+    v.get('pandoraid', [-999])[0]: k
+    for k, v in cfg.configs.items()
+    if v.get('pandora')
+}
+pid2label = {
+    v.get('pandoraid', [-999])[0]: v.get('label', k.replace('Pandora', ''))
     for k, v in cfg.configs.items()
     if v.get('pandora')
 }
 
+
+def q1(s):
+    return s.quantile(.25)
+
+
+def q3(s):
+    return s.quantile(.75)
+
+
 allfuncs = {
     'pandora_time': ('pandora_time', 'mean'),
+    'pandora_time_min': ('pandora_time', 'min'),
+    'pandora_time_max': ('pandora_time', 'max'),
     'pandora_lon': ('pandora_lon', 'mean'),
     'pandora_lat': ('pandora_lat', 'mean'),
     'pandora_elevation': ('pandora_elevation', 'mean'),
     'pandora_no2_total': ('pandora_no2_total', 'mean'),
+    'pandora_no2_total_q0': ('pandora_no2_total', 'min'),
+    'pandora_no2_total_q1': ('pandora_no2_total', q1),
+    'pandora_no2_total_q2': ('pandora_no2_total', 'median'),
+    'pandora_no2_total_q3': ('pandora_no2_total', q3),
+    'pandora_no2_total_q4': ('pandora_no2_total', 'max'),
     'pandora_no2_total_std': ('pandora_no2_total', 'std'),
     'pandora_hcho_total': ('pandora_hcho_total', 'mean'),
+    'pandora_hcho_total_q0': ('pandora_hcho_total', 'min'),
+    'pandora_hcho_total_q1': ('pandora_hcho_total', q1),
+    'pandora_hcho_total_q2': ('pandora_hcho_total', 'median'),
+    'pandora_hcho_total_q3': ('pandora_hcho_total', q3),
+    'pandora_hcho_total_q4': ('pandora_hcho_total', 'max'),
     'pandora_hcho_total_std': ('pandora_hcho_total', 'std'),
     'airnow_time': ('airnow_time', 'mean'),
     'airnow_lon': ('airnow_lon', 'mean'),
@@ -34,32 +60,82 @@ allfuncs = {
     'tropomi_lon': ('tropomi_lon', 'mean'),
     'tropomi_lat': ('tropomi_lat', 'mean'),
     'tropomi_no2_trop': ('tropomi_no2_trop', 'mean'),
+    'tropomi_no2_trop_q0': ('tropomi_no2_trop', 'min'),
+    'tropomi_no2_trop_q1': ('tropomi_no2_trop', q1),
+    'tropomi_no2_trop_q2': ('tropomi_no2_trop', 'median'),
+    'tropomi_no2_trop_q3': ('tropomi_no2_trop', q3),
+    'tropomi_no2_trop_q4': ('tropomi_no2_trop', 'max'),
     'tropomi_no2_trop_std': ('tropomi_no2_trop', 'std'),
     'tropomi_hcho_total': ('tropomi_hcho_total', 'mean'),
+    'tropomi_hcho_total_q0': ('tropomi_hcho_total', 'min'),
+    'tropomi_hcho_total_q1': ('tropomi_hcho_total', q1),
+    'tropomi_hcho_total_q2': ('tropomi_hcho_total', 'median'),
+    'tropomi_hcho_total_q3': ('tropomi_hcho_total', q3),
+    'tropomi_hcho_total_q4': ('tropomi_hcho_total', 'max'),
     'tropomi_hcho_total_std': ('tropomi_hcho_total', 'std'),
     'tempo_time': ('tempo_time', 'mean'),
+    'tempo_time_min': ('tempo_time', 'min'),
+    'tempo_time_max': ('tempo_time', 'max'),
     'tempo_lon': ('tempo_lon', 'mean'),
     'tempo_lat': ('tempo_lat', 'mean'),
     'tempo_no2_sum': ('tempo_no2_sum', 'mean'),
+    'tempo_no2_sum_q0': ('tempo_no2_sum', 'min'),
+    'tempo_no2_sum_q1': ('tempo_no2_sum', q1),
+    'tempo_no2_sum_q2': ('tempo_no2_sum', 'median'),
+    'tempo_no2_sum_q3': ('tempo_no2_sum', q3),
+    'tempo_no2_sum_q4': ('tempo_no2_sum', 'max'),
     'tempo_no2_sum_std': ('tempo_no2_sum', 'std'),
     'tempo_no2_trop': ('tempo_no2_trop', 'mean'),
+    'tempo_no2_trop_q0': ('tempo_no2_trop', 'min'),
+    'tempo_no2_trop_q1': ('tempo_no2_trop', q1),
+    'tempo_no2_trop_q2': ('tempo_no2_trop', 'median'),
+    'tempo_no2_trop_q3': ('tempo_no2_trop', q3),
+    'tempo_no2_trop_q4': ('tempo_no2_trop', 'max'),
     'tempo_no2_trop_std': ('tempo_no2_trop', 'std'),
     'tempo_no2_total': ('tempo_no2_total', 'mean'),
+    'tempo_no2_total_q0': ('tempo_no2_total', 'min'),
+    'tempo_no2_total_q1': ('tempo_no2_total', q1),
+    'tempo_no2_total_q2': ('tempo_no2_total', 'median'),
+    'tempo_no2_total_q3': ('tempo_no2_total', q3),
+    'tempo_no2_total_q4': ('tempo_no2_total', 'max'),
     'tempo_no2_total_std': ('tempo_no2_total', 'std'),
     'tempo_hcho_total': ('tempo_hcho_total', 'mean'),
+    'tempo_hcho_total_q0': ('tempo_hcho_total', 'min'),
+    'tempo_hcho_total_q1': ('tempo_hcho_total', q1),
+    'tempo_hcho_total_q2': ('tempo_hcho_total', 'median'),
+    'tempo_hcho_total_q3': ('tempo_hcho_total', q3),
+    'tempo_hcho_total_q4': ('tempo_hcho_total', 'max'),
     'tempo_hcho_total_std': ('tempo_hcho_total', 'std'),
     'tempo_no2_strat': ('tempo_no2_strat', 'mean'),
+    'tempo_no2_strat_q0': ('tempo_no2_strat', 'min'),
+    'tempo_no2_strat_q1': ('tempo_no2_strat', q1),
+    'tempo_no2_strat_q2': ('tempo_no2_strat', 'median'),
+    'tempo_no2_strat_q3': ('tempo_no2_strat', q3),
+    'tempo_no2_strat_q4': ('tempo_no2_strat', 'max'),
     'tempo_no2_strat_std': ('tempo_no2_strat', 'std'),
     'tempo_sza': ('tempo_sza', 'mean'),
     'tempo_cloud_eff': ('tempo_cloud_eff', 'mean'),
+    'err': ('err', 'mean'), 'err_std': ('err', 'std'),
+    'err_q0': ('err', 'min'),
+    'err_q1': ('err', q1), 'err_q2': ('err', 'median'), 'err_q3': ('err', q3),
+    'err_q4': ('err', 'max'),
+    'nerr': ('nerr', 'mean'), 'nerr_std': ('nerr', 'std'),
+    'nerr_q0': ('nerr', 'min'),
+    'nerr_q1': ('nerr', q1), 'nerr_q2': ('nerr', 'median'),
+    'nerr_q3': ('nerr', q3), 'nerr_q4': ('nerr', 'max'),
 }
 
 
-def agg(df, groupkeys):
+def agg(df, groupkeys, err=True):
     funcs = {
         k: v for k, v in allfuncs.items()
         if v[0] in df.columns
     }
+    if not err:
+        funcs = {
+            k: v for k, v in funcs.items()
+            if not (k.startswith('err_') or k.startswith('nerr_'))
+        }
     dfg = df.groupby(groupkeys)
     dfm = dfg.agg(**funcs)
     return dfm
@@ -67,23 +143,43 @@ def agg(df, groupkeys):
 
 def aggbybox(df):
     from . import cfg
+    if 'pandora_no2_total' in df.columns:
+        xkey, ykey = getkeys('pandora', 'no2')
+    elif 'pandora_hcho_total' in df.columns:
+        xkey, ykey = getkeys('pandora', 'hcho')
+    elif 'tropomi_no2_trop' in df.columns:
+        xkey, ykey = getkeys('tropomi', 'no2')
+    elif 'tropomi_hcho_total' in df.columns:
+        xkey, ykey = getkeys('tropomi', 'hcho')
+    elif 'airnow_no2_sfc' in df.columns:
+        xkey, ykey = getkeys('airnow', 'no2')
+    else:
+        raise KeyError('Did not find any reference keys')
+
+    if 'err' not in df.columns:
+        df.eval(f'err = {ykey} - {xkey}', inplace=True)
+    if 'nerr' not in df.columns:
+        df.eval(f'nerr = err / {xkey}', inplace=True)
+
     if 'pandora_id' in df.columns:
-        pdf = agg(df, 'pandora_id')
-        return pdf
-    pdfs = []
-    for lockey, lcfg in cfg.configs.items():
-        wlon, slat, elon, nlat = lcfg['bbox']
-        pdf = df.query(
-            f'tempo_lon > {wlon} and tempo_lon < {elon}'
-            + f' and tempo_lat > {slat} and tempo_lat < {nlat}'
-        ).copy()
-        if pdf.shape[0] == 0:
-            continue
-        pdf['lockey'] = lockey
-        pdf = agg(pdf, 'lockey')
-        pdfs.append(pdf)
-    pdf = pd.concat(pdfs)
-    return pdf
+        bdf = agg(df, 'pandora_id')
+    else:
+        bdfs = []
+        for lockey, lcfg in cfg.configs.items():
+            wlon, slat, elon, nlat = lcfg['bbox']
+            sdf = df.query(
+                f'tempo_lon > {wlon} and tempo_lon < {elon}'
+                + f' and tempo_lat > {slat} and tempo_lat < {nlat}'
+            ).copy()
+            if sdf.shape[0] == 0:
+                continue
+            sdf['lockey'] = lockey
+            bdf = agg(sdf, 'lockey')
+            bdfs.append(bdf)
+        bdf = pd.concat(bdfs)
+
+    bdf.eval(f'nmb = ({ykey} - {xkey}) / {xkey} * 100', inplace=True)
+    return bdf
 
 
 def get_trange(df):
@@ -122,6 +218,18 @@ def getkeys(source, spc, std=False):
     return xy
 
 
+def getxy(df, source, spc, err=False):
+    xk, yk = getkeys(source, spc)
+    if err:
+        x = df[xk + '_q2']
+        y = df[yk + '_q2']
+        xerr = (x - df[xk + '_q1'], df[xk + '_q3'] - x)
+        yerr = (y - df[yk + '_q1'], df[yk + '_q3'] - y)
+        return x, y, xerr, yerr
+    else:
+        return df[xk], df[yk]
+
+
 def plot_scatter(df, source, spc='no2', hexn=1000, tstart=None, tend=None):
     """
     Arguments
@@ -143,23 +251,24 @@ def plot_scatter(df, source, spc='no2', hexn=1000, tstart=None, tend=None):
 
     from scipy.stats.mstats import linregress
     from numpy.ma import masked_invalid
-    if (
-        'tempo_no2_sum_std' not in df.columns
-        and 'tempo_no2_trop_std' not in df.columns
-        and 'tempo_hcho_total_std' not in df.columns
+    xk, yk, xks, yks = getkeys(source, spc, std=True)
+    if 'pandora_id' in df.columns:
+        gdf = agg(df, ['pandora_id', 'tempo_time'])
+        x, y, xs, ys = getxy(gdf, source, spc, err=True)
+    elif (
+        xks in df.columns
+        and xks in df.columns
     ):
-        if 'pandora_id' in df.columns:
-            gdf = agg(df, ['pandora_id', 'tempo_time'])
-        elif 'tempo_time' in df.columns:
-            gdf = agg(df, ['tempo_time', 'tempo_lon', 'tempo_lat'])
+        gdf = df
+        x, y, xs, ys = getxy(gdf, source, spc, err=True)
     else:
         gdf = df
-    xk, yk, xks, yks = getkeys(source, spc, std=True)
+        x, y = getxy(gdf, source, spc, err=False)
+        xs = np.zeros_like(x)
+        ys = np.zeros_like(y)
+
     tcol = xk.split(spc)[-1][1:]
-    x = gdf[xk]
-    xs = gdf[xks]
-    y = gdf[yk]
-    ys = gdf[yks]
+
     c = gdf['tempo_sza']
     units = 'molec/cm**2'
     if source == 'airnow':
@@ -174,7 +283,7 @@ def plot_scatter(df, source, spc='no2', hexn=1000, tstart=None, tend=None):
     xmax = max(x.max(), y.max()) * 1.05
     # tstart, tend = get_trange(df)
 
-    gskw = dict(right=0.925, left=0.125)
+    gskw = dict(right=0.925, left=0.125, bottom=0.12)
     fig, ax = plt.subplots(figsize=(4.5, 4), gridspec_kw=gskw, rasterized=True)
     n = x.size
     if n < hexn:
@@ -202,6 +311,10 @@ def plot_scatter(df, source, spc='no2', hexn=1000, tstart=None, tend=None):
         ylabel=f'TEMPO {tcol} [{units}]',
     )
     ax.legend()
+    if tstart is None and 'tempo_time_min' in df.columns:
+        tstart = cfg.reftime + pd.to_timedelta(df['tempo_time_min'].min())
+        tend = cfg.reftime + pd.to_timedelta(df['tempo_time_max'].max())
+
     if tstart is not None:
         fig.text(0.58, 0.01, f'{tstart} to {tend}')
     return ax
@@ -222,17 +335,26 @@ def plot_ts(df, source, spc):
     -------
     ax : matplotlib.axes.Axes
     """
+    from .cfg import reftime, v1start, v2start
     srctkey = source.replace('_nrti', '').replace('_offl', '') + '_time'
-    st = pd.to_datetime(df[srctkey])
-    tt = pd.to_datetime(df['tempo_time'])
-    rkey, tkey = getkeys(source, spc)
+    st = reftime + pd.to_timedelta(df[srctkey], unit='s')
+    tt = reftime + pd.to_timedelta(df['tempo_time'], unit='s')
+    xkey, ykey, xskey, yskey = getkeys(source, spc, std=True)
 
-    tv = df[tkey]
-    sv = df[rkey]
+    tdf = agg(df[[ykey]], tt.dt.floor('h'))
+    sdf = agg(df[[xkey]], st.dt.floor('h'))
+    tv = tdf[ykey]
+    sv = sdf[xkey]
+    tvs = tdf[yskey]
+    svs = sdf[xskey]
+    tt = tv.index.values
+    st = sv.index.values
     gskw = dict(left=0.03, right=0.99)
     fig, ax = plt.subplots(figsize=(18, 4), gridspec_kw=gskw, rasterized=True)
-    ax.plot(st, sv, color='k', marker='o', linestyle='none')
-    ax.plot(tt, tv, color='r', marker='+', linestyle='none')
+    ax.errorbar(st, sv, yerr=svs, color='k', marker='o', linestyle='none')
+    ax.errorbar(tt, tv, yerr=tvs, color='r', marker='+', linestyle='none')
+    ax.axvline(v1start, color='grey', linestyle='--')
+    ax.axvline(v2start, color='grey', linestyle='--')
     return ax
 
 
@@ -288,8 +410,9 @@ def plot_map(pdf, source, spc, tstart=None, tend=None):
     import numpy as np
     import pycno
     rkey, tkey = getkeys(source, spc)
-
-    pdf.eval(f'nmb = ({tkey} - {rkey}) / {rkey} * 100', inplace=True)
+    rkey = rkey + '_q2'
+    tkey = tkey + '_q2'
+    pdf.eval(f'nmdnb = ({tkey} - {rkey}) / {rkey} * 100', inplace=True)
     mpdf = pdf.mean()
     lqdf = pdf.quantile(0.25)
     hqdf = pdf.quantile(0.75)
@@ -298,8 +421,10 @@ def plot_map(pdf, source, spc, tstart=None, tend=None):
     xpdf = pdf.max()
     vmax = min(ubdf[tkey], xpdf[tkey])
     norm = mc.Normalize(vmin=0, vmax=vmax)
-    gskw = dict(left=0.0333, right=0.95)
-    fig, axx = plt.subplots(1, 3, figsize=(18, 4), gridspec_kw=gskw)
+    gskw = dict(left=0.0333, right=0.95, wspace=.1)
+    fig, axx = plt.subplots(
+        1, 3, figsize=(18, 4), gridspec_kw=gskw, sharey=True
+    )
     ax = axx[0]
     ckw = dict(label='TEMPO [#/cm**2]')
     lonkey = f'{source}_lon'.replace('_nrti', '').replace('_offl', '')
@@ -318,14 +443,14 @@ def plot_map(pdf, source, spc, tstart=None, tend=None):
     tstr = f'{spc.upper()} {source} {tstart} to {tend}'
     ax.set(title=tstr)
 
-    edges = np.arange(-50, 60, 20)
+    edges = np.array([-100, -60, -45, -30, -15, 15, 30, 45, 60, 100])
     # edges = np.arange(-55, 60, 10)
     ax = axx[2]
-    ckw = dict(label=f'NMB = (TEMPO - {source}) / {source} [%]')
+    ckw = dict(label=f'NMdnB = (TEMPO - {source}) / {source} [%]')
     allopts['cmap'] = 'seismic'
     allopts['norm'] = mc.BoundaryNorm(edges, 256)
-    ax = pdf.plot.scatter(x=lonkey, y=latkey, c='nmb', ax=ax, **allopts)
-    tstr = f'NMB {spc.upper()} {source} {tstart} to {tend}'
+    ax = pdf.plot.scatter(x=lonkey, y=latkey, c='nmdnb', ax=ax, **allopts)
+    tstr = f'NMdnB {spc.upper()} {source} {tstart} to {tend}'
     ax.set(title=tstr)
     fig.colorbar(ax.collections[-1], ax=ax, **ckw)
     ylim = (17, 51)
@@ -337,7 +462,7 @@ def plot_map(pdf, source, spc, tstart=None, tend=None):
     )
     for ax in axx.ravel():
         ax.set(**allopts)
-    return ax
+    return axx
 
 
 def plot_locs(source):
@@ -374,7 +499,10 @@ def plot_locs(source):
         )
         coff = (li - 1) % 3
         roff = (li - 1) // 3
-        fig.text(0.05 + 0.3 * coff, .45 - 0.025 * roff, f'{li:02} ' + lcfg.get('label', lockey), color=c)
+        fig.text(
+            0.05 + 0.3 * coff, .45 - 0.025 * roff,
+            f'{li:02} ' + lcfg.get('label', lockey), color=c
+        )
     pycno.cno(ylim=(18, 52), xlim=(-130, -65)).drawstates()
     ax.set_title(f'{source.title()} Locations and Labels')
     # fig.text(1, 1, 'x')
@@ -382,29 +510,133 @@ def plot_locs(source):
     return ax
 
 
-def plot_summary(pdf, source, spc, tstart=None, tend=None):
+def plot_summary(pdf, source, spc, vert=False):
     srckey = source.replace('_offl', '').replace('_nrti', '')
     pdf = pdf.sort_values([f'{srckey}_lon'])
-    gskw = dict(bottom=0.05, top=0.97, left=0.35, right=0.96)
-    fig, ax = plt.subplots(figsize=(5, 10), gridspec_kw=gskw)
+    if vert:
+        gskw = dict(bottom=0.35, top=0.96, left=0.05, right=0.97)
+        figsize = (10, 5)
+    else:
+        gskw = dict(bottom=0.05, top=0.97, left=0.35, right=0.96)
+        figsize = (5, 10)
+    fig, ax = plt.subplots(figsize=figsize, dpi=144, gridspec_kw=gskw)
     xkey, ykey, xskey, yskey = getkeys(source, spc, std=True)
+    xv, yv, xerr, yerr = getxy(pdf, source, spc, err=True)
+    xqkeys = [k for k in pdf if k.startswith(xkey + '_q')]
+    yqkeys = [k for k in pdf if k.startswith(ykey + '_q')]
+    vlim = (0, pdf[[xqkeys[-2], yqkeys[-2]]].max().max() * 1.05)
     y = np.arange(pdf.shape[0]) - 0.2
-    ax.errorbar(y=y, x=pdf[xkey], xerr=pdf[xskey], linestyle='none', color='k', )
-    ax.plot(pdf[xkey], y, linestyle='none', color='k', marker='o')
+    # ax.errorbar(y=y, x=xv, xerr=xerr, linestyle='none', color='k', )
+    # ax.plot(xv, y, linestyle='none', color='k', marker='o', label=source)
+    xboxes = ax.boxplot(
+        pdf[xqkeys].values.T, positions=y, vert=vert, widths=0.2,
+        patch_artist=True, whis=1e9
+    )
+    plt.setp(xboxes['boxes'], facecolor='grey')
+    plt.setp(xboxes['medians'], color='k')
     y = np.arange(pdf.shape[0]) + 0.2
-    ax.errorbar(y=y, x=pdf[ykey], xerr=pdf[yskey], linestyle='none', color='r', )
-    ax.plot(pdf[ykey], y, linestyle='none', color='r', marker='+')
+    # ax.errorbar(y=y, x=yv, xerr=yerr, linestyle='none', color='r', )
+    # ax.plot(yv, y, linestyle='none', color='r', marker='+', label='TEMPO')
+    yboxes = ax.boxplot(
+        pdf[yqkeys].values.T, positions=y, vert=vert, widths=0.2,
+        patch_artist=True, whis=1e9
+    )
+    plt.setp(yboxes['boxes'], facecolor='red')
+    plt.setp(yboxes['medians'], color='k')
     y = np.arange(pdf.shape[0])
-    ax.set_yticks(y)
-    _ = ax.set_yticklabels([id2label.get(i) for i in pdf.index.values])
-    ylim = (-3, y.max() + 3)
-    ax.set(xlabel='NO2 molec/cm**2', ylim=ylim)
+    if vert:
+        ylim = vlim
+        xlim = (-3, y.max() + 3)
+        ax.set_xticks(y)
+        _ = ax.set_xticklabels(
+            [id2label.get(i) for i in pdf.index.values], rotation=90
+        )
+        ax.set(ylabel=f'{spc.upper()} molec/cm**2', ylim=ylim, xlim=xlim)
+    else:
+        ax.set_yticks(y)
+        _ = ax.set_yticklabels([id2label.get(i) for i in pdf.index.values])
+        ylim = (-3, y.max() + 3)
+        xlim = vlim
+        ax.set(xlabel=f'{spc.upper()} molec/cm**2', ylim=ylim, xlim=xlim)
     titlestr = f'{source.title()} {spc.upper()}'
-    if tstart is not None and tend is not None:
-        titlestr += f': {tstart}-{tend}'
+
+    if 'tempo_time_min' in pdf.columns:
+        tstart = pd.to_datetime(pdf['tempo_time_min'].min(), unit='s')
+        tend = pd.to_datetime(pdf['tempo_time_max'].max(), unit='s')
+        titlestr += f': {tstart:%F} to {tend:%F}'
     ax.set_title(titlestr, loc='right')
-    ax.text(.35, 0.01, 'West', transform=ax.transAxes, size=18)
-    ax.text(.35, 0.97, 'East', transform=ax.transAxes, size=18)
+    trans = ax.transAxes
+    if vert:
+        ax.text(0.01, .35, 'West', transform=trans, size=18, rotation=90)
+        ax.text(0.97, .35, 'East', transform=trans, size=18, rotation=90)
+    else:
+        ax.text(.35, 0.01, 'West', transform=trans, size=18)
+        ax.text(.35, 0.97, 'East', transform=trans, size=18)
+    hndl = [xboxes['boxes'][0], yboxes['boxes'][0]]
+    lbls = [srckey, 'tempo']
+    ax.legend(hndl, lbls, loc='upper right')
+    # fig.text(0, 0, 'x')
+    # fig.text(1, 1, 'x')
+    return ax
+
+
+def plot_bias_summary(pdf, source, spc, vert=False):
+    srckey = source.replace('_offl', '').replace('_nrti', '')
+    pdf = pdf.sort_values([f'{srckey}_lon'])
+    if vert:
+        gskw = dict(bottom=0.35, top=0.96, left=0.05, right=0.97)
+        figsize = (10, 5)
+    else:
+        gskw = dict(bottom=0.05, top=0.97, left=0.35, right=0.96)
+        figsize = (5, 10)
+    fig, ax = plt.subplots(figsize=figsize, dpi=144, gridspec_kw=gskw)
+    xkey, ykey, xskey, yskey = getkeys(source, spc, std=True)
+    xv, yv, xerr, yerr = getxy(pdf, source, spc, err=True)
+    qkeys = [k for k in pdf if k.startswith('nerr_q')]
+    vlim = (pdf[qkeys[1]].min() * 105, pdf[qkeys[-2]].max() * 105)
+    y = np.arange(pdf.shape[0])
+    # ax.errorbar(y=y, x=xv, xerr=xerr, linestyle='none', color='k', )
+    # ax.plot(xv, y, linestyle='none', color='k', marker='o', label=source)
+    xboxes = ax.boxplot(
+        pdf[qkeys].values.T * 100, positions=y, vert=vert, widths=0.8,
+        patch_artist=True, whis=1e9
+    )
+    plt.setp(xboxes['boxes'], facecolor='grey')
+    plt.setp(xboxes['medians'], color='k')
+    if vert:
+        ylim = vlim
+        xlim = (-3, y.max() + 3)
+        ax.set_xticks(y)
+        _ = ax.set_xticklabels(
+            [id2label.get(i) for i in pdf.index.values], rotation=90
+        )
+        ax.set(
+            ylabel=f'(tempo - {source}) / {source} [%]', ylim=ylim, xlim=xlim
+        )
+    else:
+        ax.set_yticks(y)
+        _ = ax.set_yticklabels([id2label.get(i) for i in pdf.index.values])
+        ylim = (-3, y.max() + 3)
+        xlim = vlim
+        ax.set(
+            xlabel=f'(tempo - {source}) / {source} [%]', ylim=ylim, xlim=xlim
+        )
+    titlestr = f'{source.title()} {spc.upper()}'
+
+    if 'tempo_time_min' in pdf.columns:
+        tstart = pd.to_datetime(pdf['tempo_time_min'].min(), unit='s')
+        tend = pd.to_datetime(pdf['tempo_time_max'].max(), unit='s')
+        titlestr += f': {tstart:%F} to {tend:%F}'
+    ax.set_title(titlestr, loc='right')
+    opts = dict(transform=ax.transAxes, size=18, bbox=dict(facecolor='white'))
+    if vert:
+        ax.text(0.01, .35, 'West', rotation=90, **opts)
+        ax.text(0.97, .35, 'East', rotation=90, **opts)
+        ax.axhline(0, color='k', linestyle='--')
+    else:
+        ax.text(.35, 0.01, 'West', **opts)
+        ax.text(.35, 0.97, 'East', **opts)
+        ax.axvline(0, color='k', linestyle='--')
     # fig.text(0, 0, 'x')
     # fig.text(1, 1, 'x')
     return ax
@@ -427,6 +659,8 @@ def make_plots(source, spc, df=None):
     """
     from .pair import getintx
     import gc
+    import os
+
     if df is None:
         df = getintx(source, spc)
     qs = [
@@ -434,92 +668,175 @@ def make_plots(source, spc, df=None):
         ('v1', 'v1 == True', 'v1'),
         ('v2', 'v2 == True', 'v2')
     ]
+    os.makedirs('figs/summary', exist_ok=True)
+
     for qkey, qstr, qlabel in qs:
-        sdf = df.query(qstr)
+        print(source, spc, qkey, flush=True)
+        if qkey == 'all':
+            sdf = df
+        else:
+            sdf = df.query(qstr)
         bdf = aggbybox(sdf)
+        bdf.to_csv(f'csv/{source}_{spc}_{qkey}.csv')
         tstart, tend = get_trange(sdf)
         # Make summary plots
         if source.startswith('tropomi'):
             pdf = bdf.filter(regex='Ozone.*', axis=0)
-            ax = plot_summary(pdf, source, spc, tstart=tstart, tend=tend)
-            ax.text(.95, .05, qlabel, transform=ax.transAxes, size=24, horizontalalignment='right')
-            titlestr = f'{source.title()} {spc.upper()}: {tstart} - {tend}'
-            ax.set_title(titlestr, loc='right')
-            ax.figure.savefig(f'figs/{source}_{spc}_{qkey}_summary_ozone.png')
+            ax = plot_summary(pdf, source, spc)
+            ax.text(
+                .95, .01, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='right'
+            )
+            ax.figure.savefig(
+                f'figs/summary/{source}_{spc}_{qkey}_summary_ozone.png'
+            )
+            plt.close(ax.figure)
+            ax = plot_bias_summary(pdf, source, spc)
+            ax.text(
+                .95, .01, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='right'
+            )
+            ax.figure.savefig(
+                f'figs/{source}_{spc}_{qkey}_bias_summary_ozone.png'
+            )
             plt.close(ax.figure)
             pdf = bdf.filter(regex='.*Pandora', axis=0)
-            ax = plot_summary(pdf, source, spc, tstart=tstart, tend=tend)
-            ax.text(.95, .05, qlabel, transform=ax.transAxes, size=24, horizontalalignment='right')
-            titlestr = f'{source.title()} {spc.upper()}: {tstart} - {tend}'
-            ax.set_title(titlestr, loc='right')
-            ax.figure.savefig(f'figs/{source}_{spc}_{qkey}_summary_pandora.png')
+            ax = plot_summary(pdf, source, spc)
+            ax.text(
+                .95, .01, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='right'
+            )
+            ax.figure.savefig(
+                f'figs/summary/{source}_{spc}_{qkey}_summary_pandora.png'
+            )
             plt.close(ax.figure)
-            ax = plot_map(bdf, source, spc, tstart=tstart, tend=tend)
-            ax.figure.savefig(f'figs/{source}_{spc}_{qkey}_map.png')
+            pdf = bdf.filter(regex='.*Pandora', axis=0)
+            ax = plot_bias_summary(pdf, source, spc)
+            ax.text(
+                .95, .01, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='right'
+            )
+            ax.figure.savefig(
+                f'figs/summary/{source}_{spc}_{qkey}_bias_summary_pandora.png'
+            )
             plt.close(ax.figure)
         else:
-            ax = plot_summary(bdf, source, spc, tstart=tstart, tend=tend)
-            ax.text(.95, .05, qlabel, transform=ax.transAxes, size=24, horizontalalignment='right')
-            titlestr = f'{source.title()} {spc.upper()}: {tstart} - {tend}'
-            ax.set_title(titlestr, loc='right')
-            ax.figure.savefig(f'figs/{source}_{spc}_{qkey}_summary.png')
+            ax = plot_summary(bdf, source, spc)
+            ax.text(
+                .95, .01, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='right'
+            )
+            ax.figure.savefig(
+                f'figs/summary/{source}_{spc}_{qkey}_summary.png'
+            )
             plt.close(ax.figure)
-            ax = plot_map(bdf, source, spc, tstart=tstart, tend=tend)
-            ax.figure.savefig(f'figs/{source}_{spc}_{qkey}_map.png')
+            ax = plot_bias_summary(bdf, source, spc)
+            ax.text(
+                .95, .01, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='right'
+            )
+            ax.figure.savefig(
+                f'figs/summary/{source}_{spc}_{qkey}_bias_summary.png'
+            )
             plt.close(ax.figure)
+
+        axx = plot_map(bdf, source, spc, tstart=tstart, tend=tend)
+        for ax in axx.ravel():
+            ax.text(
+                .025, .025, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='left'
+            )
+        axx[0].figure.savefig(f'figs/summary/{source}_{spc}_{qkey}_map.png')
+        plt.close(axx[0].figure)
 
         # Scatter by site
         ax = plot_scatter(bdf, source, spc, tstart=tstart, tend=tend)
-        ax.set(title=f'All {source}')
-        ax.figure.savefig(f'figs/{source}_{spc}_{qkey}_all_scat.png')
+        ax.set(title=f'All {source} {qlabel}')
+        ax.figure.savefig(f'figs/summary/{source}_{spc}_{qkey}_all_scat.png')
         plt.close(ax.figure)
         ax = plot_ds(sdf, source, spc)
-        ax.set(title=f'All {source}')
-        ax.figure.savefig(f'figs/{source}_{spc}_{qkey}_all_ds.png')
+        ax.set(title=f'All {source} {qlabel}')
+        ax.figure.savefig(f'figs/summary/{source}_{spc}_{qkey}_all_ds.png')
         plt.close(ax.figure)
         # Make site plots
         if source == 'pandora':
             for pid, pdf in sdf.groupby('pandora_id'):
-                lockey = pid2name[pid]
+                lockey = pid2key[pid]
+                loclabel = pid2label[pid]
+                os.makedirs(f'figs/{lockey}', exist_ok=True)
+                print(source, spc, qkey, lockey, flush=True)
                 pname = pdf.iloc[0]['pandora_note'].split(';')[-1].strip()
                 if pname == '':
-                    pname = lockey
+                    pname = loclabel
                 ax = plot_scatter(pdf, source, spc, tstart=tstart, tend=tend)
-                ax.set_title(f'{pname} ({pid})')
-                ax.figure.savefig(f'figs/pandora_{spc}_{qkey}_{lockey}_scat.png')
+                ax.set_title(f'{qlabel} at {pname} ({pid:.0f})')
+                ax.figure.savefig(
+                    f'figs/{lockey}/pandora_{spc}_{qkey}_{lockey}_scat.png'
+                )
                 plt.close(ax.figure)
                 ax = plot_ds(pdf, source, spc)
-                ax.set_title(f'{pname} ({pid})')
-                ax.figure.savefig(f'figs/pandora_{spc}_{qkey}_{lockey}_ds.png')
+                ax.set_title(f'{qlabel} at {pname} ({pid:.0f})')
+                ax.figure.savefig(
+                    f'figs/{lockey}/pandora_{spc}_{qkey}_{lockey}_ds.png'
+                )
                 plt.close(ax.figure)
+                if qkey == 'all':
+                    ax = plot_ts(pdf, source, spc)
+                    ax.set_title(f'{qlabel} at {pname} ({pid:.0f})')
+                    ax.figure.savefig(
+                        f'figs/{lockey}/pandora_{spc}_{qkey}_{lockey}_ts.png'
+                    )
+                    plt.close(ax.figure)
         else:
             for lockey, lcfg in cfg.configs.items():
-                lockey = lockey.replace('Pandora', '')
-                lockey = lockey.replace('Ozone_8-hr.2015.', '')
+                os.makedirs(f'figs/{lockey}', exist_ok=True)
+                print(source, spc, qkey, lockey, end='', flush=True)
+                loclabel = lockey.replace('Pandora', '')
+                loclabel = loclabel.replace('Ozone_8-hr.2015.', '')
+                loclabel = lcfg.get('label', loclabel)
                 wlon, slat, elon, nlat = lcfg['bbox']
                 pdf = sdf.query(
                     f'tempo_lon > {wlon} and tempo_lon < {elon}'
                     f'and tempo_lat > {slat} and tempo_lat < {nlat}'
                 )
+                print(end='.', flush=True)
                 if pdf.shape[0] == 0:
+                    print(flush=True)
                     continue
                 ax = plot_scatter(pdf, source, spc, tstart=tstart, tend=tend)
-                ax.set_title(f'{lockey}')
-                ax.figure.savefig(f'figs/{source}_{spc}_{qkey}_{lockey}_scat.png')
+                ax.set_title(f'{qlabel} at {loclabel}')
+                ax.figure.savefig(
+                    f'figs/{lockey}/{source}_{spc}_{qkey}_{lockey}_scat.png'
+                )
                 plt.close(ax.figure)
+                print(end='.', flush=True)
                 ax = plot_ds(pdf, source, spc)
-                ax.set(title=f'{lockey}')
-                ax.figure.savefig(f'figs/{source}_{spc}_{qkey}_{lockey}_ds.png')
+                ax.set(title=f'{qlabel} at {loclabel}')
+                ax.figure.savefig(
+                    f'figs/{lockey}/{source}_{spc}_{qkey}_{lockey}_ds.png'
+                )
                 plt.close(ax.figure)
+                print(end='.', flush=True)
+                if qkey == 'all':
+                    ax = plot_ts(pdf, source, spc)
+                    ax.set(title=f'{qlabel} at {loclabel}')
+                    ax.figure.savefig(
+                        f'figs/{lockey}/{source}_{spc}_{qkey}_{lockey}_ts.png'
+                    )
+                    plt.close(ax.figure)
+                print(flush=True)
+
         del sdf, bdf
         gc.collect()
+    del df
+    gc.collect()
 
 
 if __name__ == '__main__':
-    make_plots('airnow', 'no2')
-    make_plots('pandora', 'no2')
-    make_plots('pandora', 'hcho')
-    make_plots('tropomi_nrti', 'no2')
-    make_plots('tropomi_nrti', 'hcho')
+    # make_plots('airnow', 'no2')
+    # make_plots('pandora', 'no2')
+    # make_plots('pandora', 'hcho')
+    # make_plots('tropomi_nrti', 'no2')
+    # make_plots('tropomi_nrti', 'hcho')
     make_plots('tropomi_offl', 'no2')
-    make_plots('tropomi_offl', 'hcho')
+    # make_plots('tropomi_offl', 'hcho')
