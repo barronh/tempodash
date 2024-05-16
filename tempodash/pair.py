@@ -140,7 +140,7 @@ def open_pandora(prod, verbose=1):
             dfs.append(df.query(f'STATION == {pid}'))
 
     if verbose > 0:
-        print('\nstack pandoara', end='.', flush=True)
+        print('\nstack pandora', end='.', flush=True)
 
     if len(dfs) == 0:
         return df
@@ -150,7 +150,7 @@ def open_pandora(prod, verbose=1):
         df = df[cfg.keycols[key]]
     cfg.libc.malloc_trim(0)
     if verbose > 0:
-        print('\nadd geometry pandoara', end='.', flush=True)
+        print('\nadd geometry pandora', end='.', flush=True)
     geom = points(df[['LONGITUDE', 'LATITUDE']].values.reshape(-1, 2))
     gdf = gpd.GeoDataFrame(df, geometry=geom, crs=4326)
     if verbose > 0:
@@ -443,7 +443,11 @@ if __name__ == '__main__':
     import tempodash
     import pandas as pd
 
-    after = pd.to_datetime('2024-04-15T00Z')
+    after = pd.to_datetime('2024-04-20T00Z')
     dates = [d for d in tempodash.cfg.dates if d > after]
     tempodash.pair.makeintx('no2', dates)
+    tempodash.pair.getintx('pandora', 'no2', refresh=True)
+    tempodash.pair.getintx('tropomi_offl', 'no2', refresh=True)
     tempodash.pair.makeintx('hcho', dates)
+    tempodash.pair.getintx('pandora', 'hcho', refresh=True)
+    tempodash.pair.getintx('tropomi_offl', 'hcho', refresh=True)
