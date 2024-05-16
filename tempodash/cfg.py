@@ -194,7 +194,15 @@ for k, cfg in configs.items():
     tropomihours.extend(cfg['tropomi_hours'])
 
 tropomihours = sorted(set(tropomihours))
-dates = pd.date_range('2023-10-17T00Z', '2024-04-26T00Z', freq='1h')
+enddate = pd.to_datetime('now', utc=True).floor('d') - pd.to_timedelta('12d')
+dates = (
+    list(pd.date_range('2023-08-02T00Z', '2023-08-03T00Z', freq='1h'))
+    + list(pd.date_range('2023-08-09T00Z', '2023-08-10T00Z', freq='1h'))
+    + list(pd.date_range('2023-08-16T00Z', '2023-08-17T00Z', freq='1h'))
+    + list(pd.date_range('2023-08-21T00Z', '2023-08-24T00Z', freq='1h'))
+    + list(pd.date_range('2023-08-25T00Z', '2023-08-27T00Z', freq='1h'))
+    + list(pd.date_range('2023-10-17T00Z', enddate, freq='1h'))
+)
 dates = [
     d for d in dates
     if d.hour in allhours and d.strftime('%Y-%m-%d') not in baddates
