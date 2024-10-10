@@ -953,7 +953,7 @@ def make_plots(source, spc, df=None, debug=False, summary_only=False):
             continue
         regpath = f'csv/{source}_{spc}_{qkey}_regression.csv'
         aggpath = f'csv/{source}_{spc}_{qkey}.csv'
-        intxpath = f'intx/{source}.h5'
+        intxpath = f'intx/{source}_{spc}.h5'
         remakeagg = remakedestfrom(aggpath, intxpath)
         remakereg = remakedestfrom(regpath, intxpath)
 
