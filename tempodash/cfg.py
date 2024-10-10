@@ -26,14 +26,14 @@ else:
         {"Date": "2023-10-29", "Comment": "Bad INR"},
         {"Date": "2023-11-08", "Comment": "Bad INR S01-S07"},
     ])
-baddates = baddatesdf['Date'].values
+baddates = pd.to_datetime(baddatesdf['Date'].values, utc=True)
 bbox = (-150, 15, -50, 65)
 api = pyrsig.RsigApi(bbox=bbox, server='maple.hesc.epa.gov')
 api.tempo_kw['api_key'] = open('/home/bhenders/.tempokey', 'r').read().strip()
 api.tempo_kw['maximum_cloud_fraction'] = 1
 api.pandora_kw['minimum_quality'] = 'medium'
-api.tropomi_kw['minimum_quality']: 75
-api.tropomi_kw['maximum_cloud_fraction']: 1.0
+api.tropomi_kw['minimum_quality'] = 75
+api.tropomi_kw['maximum_cloud_fraction'] = 1.0
 
 keycorners = {
     'tempo.l2.no2.vertical_column_troposphere': 1,
@@ -194,19 +194,49 @@ for k, cfg in configs.items():
     tropomihours.extend(cfg['tropomi_hours'])
 
 tropomihours = sorted(set(tropomihours))
-enddate = pd.to_datetime('now', utc=True).floor('d') - pd.to_timedelta('12d')
-dates = (
-    list(pd.date_range('2023-08-02T00Z', '2023-08-03T00Z', freq='1h'))
-    + list(pd.date_range('2023-08-09T00Z', '2023-08-10T00Z', freq='1h'))
-    + list(pd.date_range('2023-08-16T00Z', '2023-08-17T00Z', freq='1h'))
-    + list(pd.date_range('2023-08-21T00Z', '2023-08-24T00Z', freq='1h'))
-    + list(pd.date_range('2023-08-25T00Z', '2023-08-27T00Z', freq='1h'))
-    + list(pd.date_range('2023-10-17T00Z', enddate, freq='1h'))
-)
-dates = [
-    d for d in dates
-    if d.hour in allhours and d.strftime('%Y-%m-%d') not in baddates
-]
+enddate = pd.to_datetime('now', utc=True).floor('d') - pd.to_timedelta('15d')
+if os.path.exists('dates.csv'):
+    datedf = pd.read_csv('dates.csv')
+    datedf['date'] = dates = pd.to_datetime(datedf['date'].values)
+    # Remove bade dates or dates that cannot be compared (e.g., night)
+    datedf = datedf.loc[dates.hour.isin(allhours) & ~dates.floor('1d').isin(baddates)]
+    dates = dates[dates.hour.isin(allhours) & ~dates.floor('1d').isin(baddates)]
+    v1dates = pd.to_datetime(datedf.query('version == 1')['date'].values)
+    v2dates = pd.to_datetime(datedf.query('version == 2')['date'].values)
+    v3dates = pd.to_datetime(datedf.query('version == 3')['date'].values)
+    v1start = dates.min()
+    v2start = dates.min()
+    v3start = dates.min()
+    version_dates = datedf.groupby('version').agg(
+        first_date=('date', 'min'), last_date=('date', 'max'), count=('date', 'count')
+    )
+    if len(v1dates) > 0:
+        v1start = v1dates.min()
+    if len(v2dates) > 0:
+        v2start = v2dates.min()
+    if len(v3dates) > 0:
+        v3start = v3dates.min()
+else:
+    dates = pd.date_range('2023-08-02T00Z', '2023-08-03T00Z', freq='1h').union(
+        pd.date_range('2023-08-09T00Z', '2023-08-10T00Z', freq='1h')
+    ).union(
+        pd.date_range('2023-08-16T00Z', '2023-08-17T00Z', freq='1h')
+    ).union(
+        pd.date_range('2023-08-21T00Z', '2023-08-24T00Z', freq='1h')
+    ).union(
+        pd.date_range('2023-08-25T00Z', '2023-10-16T23Z', freq='1h')
+    ).union(
+        pd.date_range('2023-10-17T00Z', enddate, freq='1h'),
+    )
+    dates = dates[dates.hour.isin(allhours) & ~dates.floor('1d').isin(baddates)]
+    
+    v1start = pd.to_datetime('2023-10-01T00', utc=True)
+    v2start = pd.to_datetime('2024-02-26T00', utc=True)
+    v3start = pd.to_datetime('2024-05-13T00', utc=True)
+    v1dates = dates[(dates >= v1start) & (dates < v2start)]
+    v2dates = dates[(dates >= v2start) | (dates < v1start)]
+    v3dates = dates[(dates >= v3start)]
+
 pandora_date_range = pd.to_datetime([dates[0], dates[-1] + data_dt])
 pandora_keys = [
     lk for lk, lcfg in configs.items() if lcfg.get('pandora', False)
@@ -214,8 +244,25 @@ pandora_keys = [
 
 bbox_polys = [box(*c['bbox']) for ck, c in configs.items()]
 analysis_mpoly = prep(unary_union(bbox_polys))
-v1start = pd.to_datetime('2023-10-01T00', utc=True)
-v2start = pd.to_datetime('2024-02-26T00', utc=True)
-v1dates = [d for d in dates if d > v1start and d < v2start]
-v2dates = [d for d in dates if d > v2start or d < v1start]
 reftime = pd.to_datetime('1970-01-01T00Z')
+
+queries = []
+if len(v1dates) > 0:
+    queries.append(('v1', 'v1 == True and tempo_cloud_eff < 0.15', 'v1'))
+if len(v2dates) > 0:
+    queries.append(('v2', 'v2 == True and tempo_cloud_eff < 0.15', 'v2'))
+if len(v3dates) > 0:
+    queries.append(('v3', 'v3 == True and tempo_cloud_eff < 0.15', 'v3'))
+if len(queries) > 1:
+    queries.insert(0, ('all', '(v1 == True or v2 == True or v3 == True) and tempo_cloud_eff < 0.15', 'v1-3'))
+
+exclude_pandora_hcho_ids = [
+    float(cfg.get('pandoraid', [-999])[0])
+    for key, cfg in configs.items()
+    if cfg.get('pandora_hcho', False) is False and cfg.get('pandora', False)
+]
+exclude_pandora_hcho_lockeys = [
+    key
+    for key, cfg in configs.items()
+    if cfg.get('pandora_hcho', False) is False and cfg.get('pandora', False)
+]

@@ -1,8 +1,59 @@
 from . import cfg
 
 
+def _write_empty_intx_df(intxpath):
+    import pandas as pd
+    # knows about one column and no records -- readable and concatenatable to any
+    # other file with tempo_time without modifying
+    emptydf = pd.DataFrame.from_dict({'tempo_time': {}})
+    emptydf.to_csv(intxpath, index=False)
+
+
+def checkprod(prod, bdate, backend='xdr', verbose=0):
+    """
+    Check if product file is available for bdate.
+    Arguments
+    ---------
+    prod: str
+        Expects tempo.l2.no2, tropomi.nrti.no2, tropomi.offl.no2, airnow.no2
+        tempo.l2.hcho, tropomi.nrti.hcho, or tropomi.offl.hcho
+    bdate: pandas.Datetime
+        Any datetime
+    backend: str
+        ascii or xdr
+
+    Returns
+    -------
+    avail : bool
+        True if product gz file exists and its size is greater than 20 bytes.
+    """
+    import os
+    source = prod.split('.')[0]
+    edate = bdate + cfg.data_dt
+    keys = cfg.proddef[prod]
+    pfx = f'data/{source}/{bdate:%Y-%m}'
+    sfx = f'{bdate:%Y-%m-%dT%H%M%SZ}_{edate:%Y-%m-%dT%H%M%SZ}.{backend}.gz'
+    if backend == 'ascii':
+        backend = 'csv'
+    checks = {}
+    for key in keys:
+        path = f'{pfx}/{key}_{sfx}'
+        if os.path.exists(path):
+            size = os.stat(path).st_size
+            checks[key] = size > 20
+        else:
+            checks[key] = False
+
+    if verbose:
+        print(checks)
+
+    return all(checks.values())
+
+
 def openchunk(key, bdate, backend='xdr'):
     """
+    Open a specific data key downloaded from RSIG.
+
     Arguments
     ---------
     key : str
@@ -34,6 +85,8 @@ def openchunk(key, bdate, backend='xdr'):
 
 def open_prod(prod, dates=None, verbose=0):
     """
+    Open all data keys downloaded from RSIG associated with a product.
+
     Arguments
     ---------
     prod : str
@@ -102,6 +155,10 @@ def open_prod(prod, dates=None, verbose=0):
 
 def open_pandora(prod, verbose=1):
     """
+    open_pandora is like open_prod, but for Pandora. Unlike other products,
+    Pandora is more efficient to open one site at a time. So, it has its open
+    function.
+
     Arguments
     ---------
     prod : str
@@ -161,6 +218,10 @@ def open_pandora(prod, verbose=1):
 
 def makeintx(spc, dates=None, verbose=1):
     """
+    Make all intersections (airnow, tropomi, and pandora) at the same time.
+    Opening a full slice of TEMPO is the slowest part, so leveraging the one
+    opening to make intersections for all species.
+
     Arguments
     ---------
     spc : str
@@ -215,24 +276,50 @@ def makeintx(spc, dates=None, verbose=1):
         for ixp in [pixpath, aixpath, tnixpath, toixpath]:
             os.makedirs(os.path.dirname(ixp), exist_ok=True)
 
-        dopandora = not (exists(pixpath) and exists(pixpath))
-        dotropomin = not exists(tnixpath) and bdate.hour in cfg.tropomihours
-        dotropomio = not exists(toixpath) and bdate.hour in cfg.tropomihours
-        doairnow = not exists(aixpath) and spc == 'no2'
+        # Check if we have data for each product, so that we do not open
+        # tempo when no data is available for intersecting.
+        # perhaps no longer necessary with empty intersections being built.
+        havetempo = checkprod(f'tempo.l2.{spc}', bdate)
+        if not havetempo:
+            print(bdate, spc, 'tempo missing or empty: skip', flush=True)
+            continue
+        havetropominrti = checkprod(f'tropomi.nrti.{spc}', bdate)
+        havetropomioffl = checkprod(f'tropomi.offl.{spc}', bdate)
+        if spc == 'no2':
+            haveairnow = checkprod(f'airnow.{spc}', bdate)
+        else:
+            haveairnow = False
+
+        # istomihour is duplicative of havetropominrt or havetropomioffl
+        # because we do not have TROPOMI inputs for hours that are not
+        # in cfg.tropomihours
+        istomihour = bdate.hour in cfg.tropomihours
+
+        # product specific do booleans.
+        dopandora = not (exists(pixpath) and exists(pix3path))
+        dotropomin = havetropominrti and not exists(tnixpath) and istomihour
+        dotropomio = havetropomioffl and not exists(toixpath) and istomihour
+        doairnow = haveairnow and not exists(aixpath) and spc == 'no2'
         if (
             not dopandora and not doairnow
             and not dotropomin and not dotropomio
         ):
             continue
+
         if verbose > 0:
-            print(bdate, spc, 'open tempo', end='...', flush=True)
+            print(bdate, spc, 'tempo open:', end=' ', flush=True)
             t0 = time.time()
         df = open_prod(f'tempo.l2.{spc}', dates=[bdate])
         if verbose > 0:
             print(f'{time.time() - t0:.1f}s')
             t0 = time.time()
         if df.shape[0] == 0:
-            print(bdate, spc, 'no tempo')
+            print(bdate, spc, 'tempo no records: write empty intx')
+            _write_empty_intx_df(pixpath)
+            _write_empty_intx_df(pix3path)
+            _write_empty_intx_df(tnixpath)
+            _write_empty_intx_df(toixpath)
+            _write_empty_intx_df(aixpath)
             continue
         if dopandora:
             pdf = pdfs.query(
@@ -240,10 +327,10 @@ def makeintx(spc, dates=None, verbose=1):
                 + f' and Timestamp <= "{edate:%Y-%m-%dT%H:%M:%S}Z"'
             )
             if pdf.shape[0] == 0:
-                print(bdate, spc, 'no pandora')
+                print(bdate, spc, 'pandora no records: skip (may exist later)')
             else:
                 if verbose > 0:
-                    print(bdate, spc, 'sjoin pandora', end='...', flush=True)
+                    print(bdate, spc, 'pandora sjoin:', end='...', flush=True)
                 t0 = time.time()
                 pixdf = gpd.sjoin(pdf, df, lsuffix='1', rsuffix='2')
                 renamer(pixdf, 'pandora')
@@ -269,14 +356,16 @@ def makeintx(spc, dates=None, verbose=1):
                     print(f'{t1 - t0:.1f}')
         if dotropomin:
             if verbose > 0:
-                print(bdate, spc, 'open tropomi nrti', flush=True)
+                print(bdate, spc, 'tropomi nrti open', flush=True)
             tdf = open_prod(f'tropomi.nrti.{spc}', dates=[bdate])
             if tdf.shape[0] == 0:
-                print(bdate, spc, 'no tropomi nrti')
+                print(bdate, spc, 'tropomi nrti no records: write empty intx')
+                _write_empty_intx_df(tnixpath)
             else:
                 if verbose > 0:
                     print(
-                        bdate, spc, 'sjoin TropOMI nrti', end='...', flush=True
+                        bdate, spc, 'tropomi nrti sjoin', end='...',
+                        flush=True
                     )
                 t0 = time.time()
                 tixdf = gpd.sjoin(tdf, df, lsuffix='1', rsuffix='2')
@@ -288,14 +377,16 @@ def makeintx(spc, dates=None, verbose=1):
                     print(f'{t1 - t0:.1f}')
         if dotropomio:
             if verbose > 0:
-                print(bdate, spc, 'open tropomi offl', flush=True)
+                print(bdate, spc, 'tropomi offl open', flush=True)
             tdf = open_prod(f'tropomi.offl.{spc}', dates=[bdate])
             if tdf.shape[0] == 0:
-                print(bdate, spc, 'no tropomi offl')
+                print(bdate, spc, 'tropomi offl no records: write empty intx')
+                _write_empty_intx_df(toixpath)
             else:
                 if verbose > 0:
                     print(
-                        bdate, spc, 'sjoin TropOMI offl', end='...', flush=True
+                        bdate, spc, 'trompomi offl sjoin:', end='...',
+                        flush=True
                     )
                 t0 = time.time()
                 tixdf = gpd.sjoin(tdf, df, lsuffix='1', rsuffix='2')
@@ -308,10 +399,11 @@ def makeintx(spc, dates=None, verbose=1):
         if doairnow:
             adf = open_prod(f'airnow.{spc}', dates=[bdate])
             if adf.shape[0] == 0:
-                print(bdate, spc, 'no tropomi')
+                print(bdate, spc, 'airnow no records: write empty intx')
+                _write_empty_intx_df(aixpath)
             else:
                 if verbose > 0:
-                    print(bdate, spc, 'sjoin AirNow', end='...', flush=True)
+                    print(bdate, spc, 'aiurnow sjoin:', end='...', flush=True)
                 t0 = time.time()
                 aixdf = gpd.sjoin(adf, df, lsuffix='1', rsuffix='2')
                 renamer(aixdf, 'airnow')
@@ -351,7 +443,7 @@ def renamer(ixdf, source):
     return ixdf.rename(columns=o2n, inplace=True)
 
 
-def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1):
+def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1, newer=None):
     """
     Arguments
     ---------
@@ -368,9 +460,12 @@ def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1):
 
     Returns
     -------
-    df : pandas.DataFrame
+    ctime, df : float, pandas.DataFrame
+        ctime is the latest creation time of the loaded intersections
+        df is the dataframe of the intersections
     """
     import gc
+    import os
     import glob
     import pandas as pd
     if source == 'pandora':
@@ -381,8 +476,17 @@ def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1):
         sprefix = source.replace('_offl', '').replace('_nrti', '')
         pat = f'intx/{sprefix}/????-??/{source}_intx_{spc}_*.csv.gz'
     paths = sorted(glob.glob(pat))[::thin]
+    ctimes = [os.stat(p).st_ctime for p in paths]
+    newestctime = max(ctimes)
+    if newer is not None:
+        paths = [p for p, c in zip(paths, ctimes) if c > newer]
+        npaths = len(paths)
+        if npaths == 0:
+            return newestctime, pd.DataFrame()
+    else:
+        npaths = len(paths)
+
     dfs = []
-    npaths = len(paths)
     chunks = max(1, npaths // 200)
     if verbose > 0:
         print(f'Found {npaths}')
@@ -395,11 +499,21 @@ def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1):
                     df[k] = df[k].astype('f')
                 if k.endswith('_time'):
                     t = pd.to_datetime(df[k], utc=True)
+                    th = t.dt.floor('1h')
                     df[k] = (t - cfg.reftime).dt.total_seconds()
                     lst = t + pd.to_timedelta(df['tempo_lon'] / 15, unit='h')
                     df['tempo_lst_hour'] = lst.dt.hour
-                    df['v1'] = (t > cfg.v1start) & (t < cfg.v2start)
-                    df['v2'] = (t > cfg.v2start) | (t < cfg.v1start)
+                    # V1 has one run
+                    # df['v1'] = (t > cfg.v1start) & (t < cfg.v2start)
+                    df['v1'] = th.isin(cfg.v1dates)
+                    # V2 is between v1 and v3 or before v1
+                    # df['v2'] = (
+                    #     ((t > cfg.v2start) & (t < cfg.v3start))
+                    #     | (t < cfg.v1start)
+                    # )
+                    df['v2'] = th.isin(cfg.v2dates)
+                    # df['v3'] = (t > cfg.v3start)
+                    df['v3'] = th.isin(cfg.v3dates)
 
             dfs.append(df.copy())
         del df
@@ -410,6 +524,8 @@ def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1):
         cfg.libc.malloc_trim(1)
     gc.collect()
     cfg.libc.malloc_trim(1)
+    if len(dfs) == 0:
+        return newestctime, pd.DataFrame()
 
     df = pd.concat(dfs, ignore_index=True)
     if verbose > 0:
@@ -423,10 +539,13 @@ def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1):
             'tempo_no2_sum = tempo_no2_trop + tempo_no2_strat', inplace=True
         )
 
-    return df
+    return newestctime, df
 
 
-def getintx(source, spc, refresh=False):
+def getintx_old(source, spc, refresh=False):
+    """
+    rebuilds the whole h5 dataframe each time
+    """
     import pandas as pd
     try:
         if refresh:
@@ -434,18 +553,79 @@ def getintx(source, spc, refresh=False):
         df = pd.read_hdf(f'intx/{source}.h5', key=f'{source}_{spc}')
         print('reuse cached')
     except Exception:
-        df = loadintx(source, spc, verbose=1, thin=1)
+        ctime, df = loadintx(source, spc, verbose=1, thin=1)
         df.to_hdf(f'intx/{source}.h5', key=f'{source}_{spc}', complevel=1)
+    return df
+
+
+def getintx(source, spc, refresh=False):
+    """
+    Appends new intersections to the h5 dataframe and the returns the whole
+    dataframe.
+
+    Arguments
+    ---------
+    source : str
+        For example, pandora, airnow, tropomi_offl
+    spc : str
+        no2 or hcho
+    refresh : bool
+        If True, add intersections made since the last time.
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        dataframe of all intersections
+    """
+    import os
+    import pandas as pd
+
+    hkey = f'{source}_{spc}'
+    hpath = f'intx/{hkey}.h5'
+    tkey = f'{hkey}_time'
+    hexists = os.path.exists(hpath)
+    # if file does not exist, refresh is true
+    refresh = refresh or ~hexists
+    if refresh:
+        # how new was the last intersection?
+        if hexists:
+            dft = pd.read_hdf(hpath, key=tkey)
+            newer = dft['timestamp'].max()
+        else:
+            newer = None
+
+        # Find all intersections after the last batch upload
+        lasttime, df = loadintx(source, spc, verbose=1, newer=newer)
+        # If there are new intersections, append them and update last
+        # upload date
+        if df.shape[0] != 0:
+            df.to_hdf(hpath, key=hkey, complevel=1, append=True, index=False)
+            dtf = pd.DataFrame(dict(timestamp=[lasttime]))
+            dtf.to_hdf(hpath, key=tkey, append=True, index=False)
+
+    # Load the whole dataset
+    df = pd.read_hdf(hpath, key=hkey)
     return df
 
 
 if __name__ == '__main__':
     import tempodash
     import pandas as pd
+    import argparse
+    from tempodash import cfg
 
-    after = pd.to_datetime('2024-04-20T00Z')
+    prsr = argparse.ArgumentParser()
+    prsr.add_argument('after', nargs='?', default=None)
+    args = prsr.parse_args()
+
+    if args.after is None:
+        after = tempodash.cfg.dates.min() - pd.to_timedelta('1h')
+    else:
+        after = pd.to_datetime(args.after)
+
     dates = [d for d in tempodash.cfg.dates if d > after]
     tempodash.pair.makeintx('no2', dates)
+    tempodash.pair.getintx('airnow', 'no2', refresh=True)
     tempodash.pair.getintx('pandora', 'no2', refresh=True)
     tempodash.pair.getintx('tropomi_offl', 'no2', refresh=True)
     tempodash.pair.makeintx('hcho', dates)

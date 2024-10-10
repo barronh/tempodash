@@ -15,7 +15,7 @@ def get(dates=None):
         opts = dict(bdate=bdate, edate=edate, compress=1, verbose=-10)
         for key in cfg.keys:
             corners = cfg.keycorners[key]
-            print(bdate, key, end='... ', flush=True)
+            print(bdate, key, end=' get... ', flush=True)
             source = key.split('.')[0]
             if source == 'pandora':
                 print('skip')
@@ -35,7 +35,7 @@ def get(dates=None):
         if key.startswith('pandora'):
             for lockey in cfg.pandora_keys:
                 lcfg = cfg.configs[lockey]
-                print(bdate, key, lockey, end='... ', flush=True)
+                print(bdate, key, lockey, end=' get... ', flush=True)
                 cfg.api.workdir = f'data/pandora/{lockey}/{qa}'
                 cfg.api.bbox = lcfg['bbox']
                 t0 = time.time()
@@ -45,4 +45,20 @@ def get(dates=None):
 
 
 if __name__ == '__main__':
-    get()
+    import argparse
+    import pandas as pd
+    from tempodash import cfg
+    prsr = argparse.ArgumentParser()
+    prsr.add_argument('start_date', nargs='?', default=None)
+    prsr.add_argument('end_date', nargs='?', default=None)
+    args = prsr.parse_args()
+    print(vars(args))
+    if args.start_date is None:
+        dates = None
+    else:
+        if args.end_date is None:
+            args.end_date = cfg.dates[-1]
+        dates = pd.date_range(args.start_date, args.end_date, freq='1d')
+        dates = [d for d in dates if d in cfg.dates]
+    print(dates)
+    get(dates=dates)

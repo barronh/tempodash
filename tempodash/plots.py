@@ -33,6 +33,7 @@ def q3(s):
 
 allfuncs = {
     'pandora_time': ('pandora_time', 'mean'),
+    'pandora_time_count': ('pandora_time', 'count'),
     'pandora_time_min': ('pandora_time', 'min'),
     'pandora_time_max': ('pandora_time', 'max'),
     'pandora_lon': ('pandora_lon', 'mean'),
@@ -53,10 +54,21 @@ allfuncs = {
     'pandora_hcho_total_q4': ('pandora_hcho_total', 'max'),
     'pandora_hcho_total_std': ('pandora_hcho_total', 'std'),
     'airnow_time': ('airnow_time', 'mean'),
+    'airnow_time_count': ('airnow_time', 'count'),
+    'airnow_time_min': ('airnow_time', 'min'),
+    'airnow_time_max': ('airnow_time', 'max'),
     'airnow_lon': ('airnow_lon', 'mean'),
     'airnow_lat': ('airnow_lat', 'mean'),
     'airnow_no2_sfc': ('airnow_no2_sfc', 'mean'),
     'airnow_no2_sfc_std': ('airnow_no2_sfc', 'std'),
+    'airnow_no2_sfc_q0': ('airnow_no2_sfc', 'min'),
+    'airnow_no2_sfc_q1': ('airnow_no2_sfc', q1),
+    'airnow_no2_sfc_q2': ('airnow_no2_sfc', 'median'),
+    'airnow_no2_sfc_q3': ('airnow_no2_sfc', q3),
+    'airnow_no2_sfc_q4': ('airnow_no2_sfc', 'max'),
+    'tropomi_time_count': ('tropomi_time', 'count'),
+    'tropomi_time_min': ('tropomi_time', 'min'),
+    'tropomi_time_max': ('tropomi_time', 'max'),
     'tropomi_lon': ('tropomi_lon', 'mean'),
     'tropomi_lat': ('tropomi_lat', 'mean'),
     'tropomi_no2_trop': ('tropomi_no2_trop', 'mean'),
@@ -74,6 +86,7 @@ allfuncs = {
     'tropomi_hcho_total_q4': ('tropomi_hcho_total', 'max'),
     'tropomi_hcho_total_std': ('tropomi_hcho_total', 'std'),
     'tempo_time': ('tempo_time', 'mean'),
+    'tempo_time_count': ('tempo_time', 'count'),
     'tempo_time_min': ('tempo_time', 'min'),
     'tempo_time_max': ('tempo_time', 'max'),
     'tempo_lon': ('tempo_lon', 'mean'),
@@ -141,8 +154,7 @@ def agg(df, groupkeys, err=True):
     return dfm
 
 
-def aggbybox(df):
-    from . import cfg
+def getdfkeys(df):
     if 'pandora_no2_total' in df.columns:
         xkey, ykey = getkeys('pandora', 'no2')
     elif 'pandora_hcho_total' in df.columns:
@@ -155,14 +167,28 @@ def aggbybox(df):
         xkey, ykey = getkeys('airnow', 'no2')
     else:
         raise KeyError('Did not find any reference keys')
+    return xkey, ykey
 
+
+def adderr(df):
+    xkey, ykey = getdfkeys(df)
     if 'err' not in df.columns:
-        df.eval(f'err = {ykey} - {xkey}', inplace=True)
+        df['err'] = df[ykey] - df[xkey]
     if 'nerr' not in df.columns:
-        df.eval(f'nerr = err / {xkey}', inplace=True)
+        df['nerr'] = df['err'] / df[xkey]
+
+
+def aggbybox(df):
+    from . import cfg
+    xkey, ykey = getdfkeys(df)
+    adderr(df)
 
     if 'pandora_id' in df.columns:
         bdf = agg(df, 'pandora_id')
+        pids = bdf.index.values
+        bdf['lockey'] = [pid2key[pid] for pid in pids]
+        bdf = bdf.set_index('lockey')
+        bdf['pandora_id'] = pids
     else:
         bdfs = []
         for lockey, lcfg in cfg.configs.items():
@@ -218,8 +244,11 @@ def getkeys(source, spc, std=False):
     return xy
 
 
-def getxy(df, source, spc, err=False):
-    xk, yk = getkeys(source, spc)
+def getxy(df, source=None, spc=None, err=False):
+    if source is None or spc is None:
+        xk, yk = getdfkeys(df)
+    else:
+        xk, yk = getkeys(source, spc)
     if err:
         x = df[xk + '_q2']
         y = df[yk + '_q2']
@@ -230,7 +259,10 @@ def getxy(df, source, spc, err=False):
         return df[xk], df[yk]
 
 
-def plot_scatter(df, source, spc='no2', hexn=1000, tstart=None, tend=None):
+def plot_scatter(
+    df, source, spc='no2', hexn=1e4, tstart=None, tend=None, reg=None,
+    colorby='tempo_sza'
+):
     """
     Arguments
     ---------
@@ -243,16 +275,19 @@ def plot_scatter(df, source, spc='no2', hexn=1000, tstart=None, tend=None):
     hexn : int
         If df.shape[0] >= hexn, use hexbin instead of scatter.
         Otherwise, use scatter.
+    reg : pandas.DataFrame
+        Precalculated regression from util.regressions
 
     Returns
     -------
     ax : matplotlib.axes.Axes
     """
 
-    from scipy.stats.mstats import linregress
-    from numpy.ma import masked_invalid
+    from .util import regressions
+    # from scipy.stats.mstats import linregress
+    # from numpy.ma import masked_invalid
     xk, yk, xks, yks = getkeys(source, spc, std=True)
-    if 'pandora_id' in df.columns:
+    if 'pandora_id' in df.columns and df.index.name != 'lockey':
         gdf = agg(df, ['pandora_id', 'tempo_time'])
         x, y, xs, ys = getxy(gdf, source, spc, err=True)
     elif (
@@ -269,21 +304,25 @@ def plot_scatter(df, source, spc='no2', hexn=1000, tstart=None, tend=None):
 
     tcol = xk.split(spc)[-1][1:]
 
-    c = gdf['tempo_sza']
+    c = gdf[colorby]
     units = 'molec/cm**2'
     if source == 'airnow':
         units = '1'
         x = (x - x.mean()) / x.std()
         y = (y - y.mean()) / y.std()
-        xs = xs * 0
-        ys = ys * 0
+        xs = x * 0
+        ys = y * 0
 
-    lr = linregress(masked_invalid(x.values), masked_invalid(y.values))
-    lrstr = f'y = {lr.slope:.2f}x{lr.intercept:+.2e} (r={lr.rvalue:.2f})'
+    # lr = linregress(masked_invalid(x.values), masked_invalid(y.values))
+    if reg is None:
+        reg = regressions(x, y)
+    lrstr = 'LR={lr_slope:.2f}x{lr_intercept:+.2e}'.format(**reg)
+    lrstr += ' (r={lr_rvalue:.2f})'.format(**reg)
+    drstr = 'DR={dr_slope:.2f}x{dr_intercept:+.2e}'.format(**reg)
     xmax = max(x.max(), y.max()) * 1.05
     # tstart, tend = get_trange(df)
 
-    gskw = dict(right=0.925, left=0.125, bottom=0.12)
+    gskw = dict(right=0.925, left=0.15, bottom=0.12)
     fig, ax = plt.subplots(figsize=(4.5, 4), gridspec_kw=gskw, rasterized=True)
     n = x.size
     if n < hexn:
@@ -291,19 +330,38 @@ def plot_scatter(df, source, spc='no2', hexn=1000, tstart=None, tend=None):
             x=x, y=y, yerr=ys, xerr=xs, color='k', linestyle='none', zorder=1
         )
         s = ax.scatter(x=x, y=y, c=c, zorder=2)
-        fig.colorbar(s, ax=ax, label='Solar Zenith Angle [deg]')
+        if colorby == 'tempo_sza':
+            clabel = 'Solar Zenith Angle [deg]'
+        elif colorby == 'tempo_lat':
+            clabel = 'Latitude [deg]'
+        else:
+            clabel = colorby
+        fig.colorbar(s, ax=ax, label=clabel)
     else:
         vmax = max(x.max(), y.max())
+        lnorm = plt.matplotlib.colors.LogNorm(vmin=1)
         s = ax.hexbin(
             x=x, y=y, gridsize=(20, 20), extent=(0, vmax, 0, vmax),
-            mincnt=1
+            mincnt=1, norm=lnorm
         )
         ax.set(facecolor='gainsboro')
         fig.colorbar(s, ax=ax, label='Count [#]')
+        # cymax = cb.ax.get_ylim()[1]
+        # ordermag = np.floor(np.log10(cymax))
+        # cyticks = np.arange(0, cymax, 10**ordermag)
+        # cylabels = [f'{cv / (10**ordermag):.0f}' for cv in cyticks]
+        # cb.ax.set_yticks(cyticks)
+        # cb.ax.set_yticklabels(cylabels)
+        # cb.ax.set_ylabel(f'Count [{10**ordermag:.0f}s]')
 
     ax.axline((0, 0), slope=1, zorder=3, label='1:1', color='grey')
     ax.axline(
-        (0, lr.intercept), slope=lr.slope, zorder=3, label=lrstr, color='k'
+        (0, reg['lr_intercept']), slope=reg['lr_slope'], zorder=3,
+        label=lrstr, color='k'
+    )
+    ax.axline(
+        (0, reg['dr_intercept']), slope=reg['dr_slope'], zorder=3,
+        label=drstr, color='k', linestyle='--'
     )
     ax.set(
         aspect=1, xlim=(0, xmax), ylim=(0, xmax),
@@ -312,15 +370,185 @@ def plot_scatter(df, source, spc='no2', hexn=1000, tstart=None, tend=None):
     )
     ax.legend()
     if tstart is None and 'tempo_time_min' in df.columns:
-        tstart = cfg.reftime + pd.to_timedelta(df['tempo_time_min'].min())
-        tend = cfg.reftime + pd.to_timedelta(df['tempo_time_max'].max())
+        tstart = pd.to_datetime(
+            df['tempo_time_min'].min(), unit='s'
+        ).strftime('%Y-%m-%d')
+        tend = pd.to_datetime(
+            df['tempo_time_max'].min(), unit='s'
+        ).strftime('%Y-%m-%d')
 
     if tstart is not None:
         fig.text(0.58, 0.01, f'{tstart} to {tend}')
     return ax
 
 
-def plot_ts(df, source, spc):
+def plot_tod_scatter(df, source, spc, tstart=None, tend=None, reghdf=None):
+    # from scipy.stats.mstats import linregress
+    from .util import regressions
+    gskw = dict(bottom=0.05, left=0.05, right=0.92, top=0.90)
+    fig, axx = plt.subplots(
+        3, 4, figsize=(14, 12), gridspec_kw=gskw, sharex=False, sharey=False
+    )
+    pdf = df.query('tempo_lst_hour > 5 and tempo_lst_hour < 18')
+    x, y = getxy(df, source, spc, err=False)
+    # outlier max
+    xmax = x.quantile(0.75) + 2 * (x.quantile(0.75) - x.quantile(0.25))
+    ymax = y.quantile(0.75) + 2 * (y.quantile(0.75) - y.quantile(0.25))
+    vmax1 = max(ymax, xmax)
+    vmax2 = max(x.max(), y.max())
+    vmax = max(vmax1, vmax2)
+    ss = []
+    for hi, (h, hdf) in enumerate(pdf.groupby('tempo_lst_hour')):
+        hdf = hdf.groupby(['pandora_id', 'tempo_time']).mean(numeric_only=True)
+        ax = axx.ravel()[hi]
+        ax.text(
+            vmax * 0.95, 2e15, f'{h:.0f}-{h+1:.0f}LST', size=16,
+            horizontalalignment='right'
+        )
+        x, y = getxy(hdf, source, spc, err=False)
+        if reghdf is None:
+            regopts = regressions(x, y)
+        else:
+            regopts = reghdf.loc[h]
+        lr_slope = regopts['lr_slope']
+        lr_intercept = regopts['lr_intercept']
+        lr_rvalue = regopts['lr_rvalue']
+        dr_slope = regopts['dr_slope']
+        dr_intercept = regopts['dr_intercept']
+        lrstr = f'LR={lr_slope:.2f}x{lr_intercept:+.2e}'
+        drstr = f'OR={dr_slope:.2f}x{dr_intercept:+.2e}'
+        ax.set(title=f'n={hdf.shape[0]}; r={lr_rvalue:.2f}')
+        norm = plt.matplotlib.colors.LogNorm(1, None)
+        s = ax.hexbin(
+            x, y, mincnt=1, norm=norm, extent=(0, vmax, 0, vmax), gridsize=25
+        )
+        ss.append(s)
+        ax.axline((0, 0), slope=1, label='1:1', color='grey', linestyle='-')
+        ax.axline(
+            (0, lr_intercept), slope=lr_slope, label=lrstr,
+            color='k', linestyle='--'
+        )
+        ax.axline(
+            (0, dr_intercept), slope=dr_slope, label=drstr,
+            color='k', linestyle=':'
+        )
+        ax.legend(loc='upper left')
+    cmax = sorted([s.get_array().max() for s in ss])[-2]
+    if cmax > 100:
+        norm = plt.matplotlib.colors.LogNorm(1, cmax)
+    else:
+        norm = plt.matplotlib.colors.Normalize(1, cmax)
+    for s in ss:
+        s.set_norm(norm)
+    plt.setp(axx, aspect=1, xlim=(0, vmax), ylim=(0, vmax))
+    plt.setp(axx.ravel()[hi+1:], visible=False)
+    cax = fig.add_axes([0.93, .1, 0.03, 0.8])
+    fig.colorbar(s, cax=cax, label='count')
+    start, end = pd.to_datetime(pdf['tempo_time'].quantile([0, 1]), unit='s')
+    fig.suptitle(f'{start:%Y-%m-%d} to {end:%Y-%m-%d}', size=24)
+    plt.setp(axx[-1], xlabel=f'{source.title()} VCD {spc.upper()}')
+    plt.setp(axx[:, 0], ylabel=f'TEMPO VCD (trop+strat) {spc.upper()}')
+    if tstart is None and 'tempo_time_min' in df.columns:
+        tstart = pd.to_datetime(
+            df['tempo_time_min'].min(), unit='s'
+        ).strftime('%Y-%m-%d')
+        tend = pd.to_datetime(
+            df['tempo_time_max'].min(), unit='s'
+        ).strftime('%Y-%m-%d')
+
+    if tstart is not None:
+        fig.text(0.58, 0.01, f'{tstart} to {tend}')
+
+    return fig
+
+
+def plot_month_scatter(df, source, spc, tstart=None, tend=None, reghdf=None):
+    # from scipy.stats.mstats import linregress
+    from .util import regressions
+    gskw = dict(bottom=0.05, left=0.05, right=0.92, top=0.90)
+    fig, axx = plt.subplots(
+        3, 4, figsize=(14, 12), gridspec_kw=gskw, sharex=False, sharey=False
+    )
+    if source == 'pandora':
+        lockey = 'pandora_id'
+        pdf = df.groupby([lockey, 'tempo_time'], as_index=False).mean(
+            numeric_only=True
+        )
+    else:
+        pdf = df
+
+    pdf['month'] = pd.to_datetime(pdf['tempo_time'], unit='s').dt.month
+    x, y = getxy(df, source, spc, err=False)
+    # outlier max
+    xmax = x.quantile(0.75) + 2 * (x.quantile(0.75) - x.quantile(0.25))
+    ymax = y.quantile(0.75) + 2 * (y.quantile(0.75) - y.quantile(0.25))
+    vmax1 = max(ymax, xmax)
+    vmax2 = max(x.max(), y.max())
+    vmax = max(vmax1, vmax2)
+    ss = []
+    plt.setp(axx, visible=False)
+    for hi, (h, hdf) in enumerate(pdf.groupby('month')):
+        ax = axx.ravel()[h - 1]
+        ax.set(visible=True)
+        m = pd.to_datetime(f'1970-{h:02.0f}-15').strftime('%b')
+        ax.text(vmax * 0.95, 2e15, m, size=16, horizontalalignment='right')
+        x, y = getxy(hdf, source, spc, err=False)
+        if reghdf is None:
+            regopts = regressions(x, y)
+        else:
+            regopts = reghdf.loc[m]
+        lr_slope = regopts['lr_slope']
+        lr_intercept = regopts['lr_intercept']
+        lr_rvalue = regopts['lr_rvalue']
+        dr_slope = regopts['dr_slope']
+        dr_intercept = regopts['dr_intercept']
+        lrstr = f'LR={lr_slope:.2f}x{lr_intercept:+.2e}'
+        drstr = f'OR={dr_slope:.2f}x{dr_intercept:+.2e}'
+        ax.set(title=f'n={hdf.shape[0]}; r={lr_rvalue:.2f}')
+        norm = plt.matplotlib.colors.LogNorm(1, None)
+        s = ax.hexbin(
+            x, y, mincnt=1, norm=norm, extent=(0, vmax, 0, vmax), gridsize=25
+        )
+        ss.append(s)
+        ax.axline((0, 0), slope=1, label='1:1', color='grey', linestyle='-')
+        ax.axline(
+            (0, lr_intercept), slope=lr_slope, label=lrstr,
+            color='k', linestyle='--'
+        )
+        ax.axline(
+            (0, dr_intercept), slope=dr_slope, label=drstr,
+            color='k', linestyle=':'
+        )
+        ax.legend(loc='upper left')
+    cmax = sorted([s.get_array().max() for s in ss])[-2]
+    if cmax > 100:
+        norm = plt.matplotlib.colors.LogNorm(1, cmax)
+    else:
+        norm = plt.matplotlib.colors.Normalize(1, cmax)
+    for s in ss:
+        s.set_norm(norm)
+    plt.setp(axx, aspect=1, xlim=(0, vmax), ylim=(0, vmax))
+    cax = fig.add_axes([0.93, .1, 0.03, 0.8])
+    fig.colorbar(s, cax=cax, label='count')
+    start, end = pd.to_datetime(pdf['tempo_time'].quantile([0, 1]), unit='s')
+    fig.suptitle(f'{start:%Y-%m-%d} to {end:%Y-%m-%d}', size=24)
+    plt.setp(axx[-1], xlabel=f'{source.title()} VCD {spc.upper()}')
+    plt.setp(axx[:, 0], ylabel=f'TEMPO VCD (trop+strat) {spc.upper()}')
+    if tstart is None and 'tempo_time_min' in df.columns:
+        tstart = pd.to_datetime(
+            df['tempo_time_min'].min(), unit='s'
+        ).strftime('%Y-%m-%d')
+        tend = pd.to_datetime(
+            df['tempo_time_max'].min(), unit='s'
+        ).strftime('%Y-%m-%d')
+
+    if tstart is not None:
+        fig.text(0.58, 0.01, f'{tstart} to {tend}')
+
+    return fig
+
+
+def plot_ts(df, source, spc, freq='h'):
     """
     Arguments
     ---------
@@ -335,26 +563,57 @@ def plot_ts(df, source, spc):
     -------
     ax : matplotlib.axes.Axes
     """
-    from .cfg import reftime, v1start, v2start
+    from .cfg import reftime, v1start, v2start, v3start, queries
     srctkey = source.replace('_nrti', '').replace('_offl', '') + '_time'
     st = reftime + pd.to_timedelta(df[srctkey], unit='s')
     tt = reftime + pd.to_timedelta(df['tempo_time'], unit='s')
     xkey, ykey, xskey, yskey = getkeys(source, spc, std=True)
-
-    tdf = agg(df[[ykey]], tt.dt.floor('h'))
-    sdf = agg(df[[xkey]], st.dt.floor('h'))
+    tdf = agg(df[[ykey]], tt.dt.floor(freq), err=False)
+    sdf = agg(df[[xkey]], st.dt.floor(freq), err=False)
     tv = tdf[ykey]
     sv = sdf[xkey]
-    tvs = tdf[yskey]
-    svs = sdf[xskey]
-    tt = tv.index.values
-    st = sv.index.values
-    gskw = dict(left=0.03, right=0.99)
+    tvs = (
+        tdf[ykey + '_q2'] - tdf[ykey + '_q1'],
+        tdf[ykey + '_q3'] - tdf[ykey + '_q2'],
+    )
+    svs = (
+        sdf[xkey + '_q2'] - sdf[xkey + '_q1'],
+        sdf[xkey + '_q3'] - sdf[xkey + '_q2'],
+    )
+
+    # using width instead of offset
+    tt = tv.index.values  # + pd.to_timedelta('600s')
+    st = sv.index.values  # - pd.to_timedelta('600s')
+    if source == 'airnow':
+        right = 0.97
+    else:
+        right = 0.99
+    gskw = dict(left=0.04, right=right)
     fig, ax = plt.subplots(figsize=(18, 4), gridspec_kw=gskw, rasterized=True)
-    ax.errorbar(st, sv, yerr=svs, color='k', marker='o', linestyle='none')
-    ax.errorbar(tt, tv, yerr=tvs, color='r', marker='+', linestyle='none')
-    ax.axvline(v1start, color='grey', linestyle='--')
-    ax.axvline(v2start, color='grey', linestyle='--')
+    if source == 'airnow':
+        rax = ax
+        tax = ax.twinx()
+        tax.set(ylabel=f'{spc.upper()} [ppb]')
+    else:
+        tax = rax = ax
+    ebs = rax.errorbar(
+        st, sv, yerr=svs, color='k', marker='o', linestyle='none', label=source
+    )
+    ebt = tax.errorbar(
+        tt, tv, yerr=tvs, color='r', marker='+', linestyle='none',
+        label='tempo'
+    )
+    ebt[-1][0].set_linestyle('--')
+    ebs[-1][0].set_linewidth(ebt[-1][0].get_linewidth() * 2)
+    if len(queries) > 1:
+        ax.axvline(v1start, color='grey', linestyle='--')
+        ax.axvline(v2start, color='grey', linestyle='--')
+        ax.axvline(v3start, color='grey', linestyle='--')
+    ax.legend([ebs, ebt], [source, 'tempo'])
+    ax.set(ylabel=f'{spc.upper()} [molecules/cm**2]')
+    if source == 'airnow':
+        rax.set(ylim=(0, None))
+        tax.set(ylim=(0, None))
     return ax
 
 
@@ -376,10 +635,7 @@ def plot_ds(df, source, spc):
     tstart, tend = get_trange(df)
     gdf = agg(df, 'tempo_lst_hour')
     xk, yk, xks, yks = getkeys(source, spc, std=True)
-    tv = gdf[yk]
-    tvs = gdf[yks]
-    sv = gdf[xk]
-    svs = gdf[xks]
+    sv, tv, svs, tvs = getxy(gdf, source, spc, err=True)
     if source == 'airnow':
         right = 0.9
     else:
@@ -510,11 +766,11 @@ def plot_locs(source):
     return ax
 
 
-def plot_summary(pdf, source, spc, vert=False):
+def plot_summary(pdf, source, spc, vert=True):
     srckey = source.replace('_offl', '').replace('_nrti', '')
     pdf = pdf.sort_values([f'{srckey}_lon'])
     if vert:
-        gskw = dict(bottom=0.35, top=0.96, left=0.05, right=0.97)
+        gskw = dict(bottom=0.35, top=0.95, left=0.06, right=0.97)
         figsize = (10, 5)
     else:
         gskw = dict(bottom=0.05, top=0.97, left=0.35, right=0.96)
@@ -532,8 +788,10 @@ def plot_summary(pdf, source, spc, vert=False):
         pdf[xqkeys].values.T, positions=y, vert=vert, widths=0.2,
         patch_artist=True, whis=1e9
     )
-    plt.setp(xboxes['boxes'], facecolor='grey')
-    plt.setp(xboxes['medians'], color='k')
+    plt.setp(xboxes['boxes'], facecolor='grey', edgecolor='grey')
+    plt.setp(xboxes['medians'], color='red')
+    plt.setp(xboxes['whiskers'], linewidth=.25, color='grey')
+    plt.setp(xboxes['caps'], linewidth=.25, color='grey')
     y = np.arange(pdf.shape[0]) + 0.2
     # ax.errorbar(y=y, x=yv, xerr=yerr, linestyle='none', color='r', )
     # ax.plot(yv, y, linestyle='none', color='r', marker='+', label='TEMPO')
@@ -541,8 +799,10 @@ def plot_summary(pdf, source, spc, vert=False):
         pdf[yqkeys].values.T, positions=y, vert=vert, widths=0.2,
         patch_artist=True, whis=1e9
     )
-    plt.setp(yboxes['boxes'], facecolor='red')
-    plt.setp(yboxes['medians'], color='k')
+    plt.setp(yboxes['boxes'], facecolor='red', edgecolor='red')
+    plt.setp(yboxes['medians'], color='k', )
+    plt.setp(yboxes['whiskers'], linewidth=.25, color='red')
+    plt.setp(yboxes['caps'], linewidth=.25, color='red')
     y = np.arange(pdf.shape[0])
     if vert:
         ylim = vlim
@@ -580,11 +840,11 @@ def plot_summary(pdf, source, spc, vert=False):
     return ax
 
 
-def plot_bias_summary(pdf, source, spc, vert=False):
+def plot_bias_summary(pdf, source, spc, vert=True):
     srckey = source.replace('_offl', '').replace('_nrti', '')
     pdf = pdf.sort_values([f'{srckey}_lon'])
     if vert:
-        gskw = dict(bottom=0.35, top=0.96, left=0.05, right=0.97)
+        gskw = dict(bottom=0.35, top=0.95, left=0.06, right=0.97)
         figsize = (10, 5)
     else:
         gskw = dict(bottom=0.05, top=0.97, left=0.35, right=0.96)
@@ -642,7 +902,18 @@ def plot_bias_summary(pdf, source, spc, vert=False):
     return ax
 
 
-def make_plots(source, spc, df=None):
+def remakedestfrom(dest, src):
+    import os
+    if os.path.exists(dest):
+        destt = os.stat(dest).st_mtime
+        srct = os.stat(src).st_mtime
+        remake = destt < srct
+    else:
+        remake = True
+    return remake
+
+
+def make_plots(source, spc, df=None, debug=False, summary_only=False):
     """
     Arguments
     ---------
@@ -652,40 +923,75 @@ def make_plots(source, spc, df=None):
         'no2' or 'hcho'
     df : pandas.DataFrame
         loaded from makeintx; If None , makeintx is called.
+    summary_only : bool
+        If True, do not make site-specific plots
 
     Returns
     -------
     None
     """
     from .pair import getintx
+    from .util import regressiondf
     import gc
     import os
 
     if df is None:
         df = getintx(source, spc)
-    qs = [
-        ('all', 'v1 == True or v2 == True', 'v1-v2'),
-        ('v1', 'v1 == True', 'v1'),
-        ('v2', 'v2 == True', 'v2')
-    ]
-    os.makedirs('figs/summary', exist_ok=True)
 
-    for qkey, qstr, qlabel in qs:
+    adderr(df)
+
+    os.makedirs('figs/summary', exist_ok=True)
+    if len(cfg.queries) > 1:
+        allkey = 'all'
+    else:
+        allkey = cfg.queries[0][0]
+    for qkey, qstr, qlabel in cfg.queries:
         print(source, spc, qkey, flush=True)
-        if qkey == 'all':
-            sdf = df
+        sdf = df.query(qstr)
+        if sdf.shape[0] == 0:
+            print(source, spc, qkey, 'skipped... no data')
+            continue
+        regpath = f'csv/{source}_{spc}_{qkey}_regression.csv'
+        aggpath = f'csv/{source}_{spc}_{qkey}.csv'
+        intxpath = f'intx/{source}.h5'
+        remakeagg = remakedestfrom(aggpath, intxpath)
+        remakereg = remakedestfrom(regpath, intxpath)
+
+        regdf = regressiondf(sdf, outpath=regpath, refresh=remakereg)
+        regdef = regdf.iloc[0] * np.nan
+        if remakeagg:
+            bdf = aggbybox(sdf)
+            bdf.to_csv(aggpath)
         else:
-            sdf = df.query(qstr)
-        bdf = aggbybox(sdf)
-        bdf.to_csv(f'csv/{source}_{spc}_{qkey}.csv')
+            print('reuse aggregation')
+            bdf = pd.read_csv(aggpath, index_col=0)
         tstart, tend = get_trange(sdf)
+        # Excluding from SDF gets rid of the site-specific
+        if source == 'pandora' and spc == 'hcho':
+            osdf = sdf.loc[
+                ~sdf['pandora_id'].isin(cfg.exclude_pandora_hcho_ids)
+            ]
+            obdf = bdf.loc[
+                ~bdf['pandora_id'].isin(cfg.exclude_pandora_hcho_ids)
+            ]
+        else:
+            osdf = sdf
+            obdf = bdf
+
         # Make summary plots
+        ax = plot_ts(sdf, source, spc, freq='3d')
+        ax.set(title=f'3-day IQR {qlabel} at All Sites')
+        ax.figure.savefig(
+            f'figs/summary/{source}_{spc}_{qkey}_ts.png'
+        )
+        plt.close(ax.figure)
+
         if source.startswith('tropomi'):
-            pdf = bdf.filter(regex='Ozone.*', axis=0)
+            pdf = obdf.filter(regex='Ozone.*', axis=0)
             ax = plot_summary(pdf, source, spc)
             ax.text(
-                .95, .01, qlabel, transform=ax.transAxes, size=24,
-                horizontalalignment='right'
+                0.005, .99, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='left', verticalalignment='top'
             )
             ax.figure.savefig(
                 f'figs/summary/{source}_{spc}_{qkey}_summary_ozone.png'
@@ -693,54 +999,54 @@ def make_plots(source, spc, df=None):
             plt.close(ax.figure)
             ax = plot_bias_summary(pdf, source, spc)
             ax.text(
-                .95, .01, qlabel, transform=ax.transAxes, size=24,
-                horizontalalignment='right'
+                0.005, .99, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='left', verticalalignment='top'
             )
             ax.figure.savefig(
-                f'figs/{source}_{spc}_{qkey}_bias_summary_ozone.png'
+                f'figs/summary/{source}_{spc}_{qkey}_bias_summary_ozone.png'
             )
             plt.close(ax.figure)
-            pdf = bdf.filter(regex='.*Pandora', axis=0)
+            pdf = obdf.filter(regex='.*Pandora', axis=0)
             ax = plot_summary(pdf, source, spc)
             ax.text(
-                .95, .01, qlabel, transform=ax.transAxes, size=24,
-                horizontalalignment='right'
+                0.005, .99, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='left', verticalalignment='top'
             )
             ax.figure.savefig(
                 f'figs/summary/{source}_{spc}_{qkey}_summary_pandora.png'
             )
             plt.close(ax.figure)
-            pdf = bdf.filter(regex='.*Pandora', axis=0)
+            pdf = obdf.filter(regex='.*Pandora', axis=0)
             ax = plot_bias_summary(pdf, source, spc)
             ax.text(
-                .95, .01, qlabel, transform=ax.transAxes, size=24,
-                horizontalalignment='right'
+                0.005, .99, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='left', verticalalignment='top'
             )
             ax.figure.savefig(
                 f'figs/summary/{source}_{spc}_{qkey}_bias_summary_pandora.png'
             )
             plt.close(ax.figure)
         else:
-            ax = plot_summary(bdf, source, spc)
+            ax = plot_summary(obdf, source, spc)
             ax.text(
-                .95, .01, qlabel, transform=ax.transAxes, size=24,
-                horizontalalignment='right'
+                0.005, .99, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='left', verticalalignment='top'
             )
             ax.figure.savefig(
                 f'figs/summary/{source}_{spc}_{qkey}_summary.png'
             )
             plt.close(ax.figure)
-            ax = plot_bias_summary(bdf, source, spc)
+            ax = plot_bias_summary(obdf, source, spc)
             ax.text(
-                .95, .01, qlabel, transform=ax.transAxes, size=24,
-                horizontalalignment='right'
+                0.005, .99, qlabel, transform=ax.transAxes, size=24,
+                horizontalalignment='left', verticalalignment='top'
             )
             ax.figure.savefig(
                 f'figs/summary/{source}_{spc}_{qkey}_bias_summary.png'
             )
             plt.close(ax.figure)
 
-        axx = plot_map(bdf, source, spc, tstart=tstart, tend=tend)
+        axx = plot_map(obdf, source, spc, tstart=tstart, tend=tend)
         for ax in axx.ravel():
             ax.text(
                 .025, .025, qlabel, transform=ax.transAxes, size=24,
@@ -750,14 +1056,44 @@ def make_plots(source, spc, df=None):
         plt.close(axx[0].figure)
 
         # Scatter by site
-        ax = plot_scatter(bdf, source, spc, tstart=tstart, tend=tend)
+        ax = plot_scatter(
+            obdf, source, spc, tstart=tstart, tend=tend, colorby='tempo_lat'
+        )
         ax.set(title=f'All {source} {qlabel}')
         ax.figure.savefig(f'figs/summary/{source}_{spc}_{qkey}_all_scat.png')
         plt.close(ax.figure)
-        ax = plot_ds(sdf, source, spc)
+        ax = plot_ds(
+            osdf.query('tempo_lst_hour > 5 and tempo_lst_hour < 18'),
+            source, spc
+        )
         ax.set(title=f'All {source} {qlabel}')
         ax.figure.savefig(f'figs/summary/{source}_{spc}_{qkey}_all_ds.png')
         plt.close(ax.figure)
+        if source == 'pandora':
+            hregpath = f'csv/{source}_{spc}_{qkey}_regression_tod.csv'
+            remakehreg = remakedestfrom(hregpath, intxpath)
+            reghdf = regressiondf(
+                osdf, outpath=hregpath, refresh=remakehreg,
+                keys='tempo_lst_hour'
+            )
+            fig = plot_tod_scatter(osdf, source, spc, reghdf=reghdf)
+            fig.text(0.05, 0.92, qlabel, size=24)
+            fig.savefig(f'figs/summary/{source}_{spc}_{qkey}_tod_scat.png')
+            plt.close(fig)
+
+        # mregpath = f'csv/{source}_{spc}_{qkey}_regression_tod.csv'
+        # remakemreg = remakedestfrom(mregpath, intxpath)
+        # regmdf = regressiondf(
+        #     osdf, outpath=mregpath, refresh=remakemreg, keys='month'
+        # )
+        fig = plot_month_scatter(osdf, source, spc, reghdf=None)
+        fig.text(0.05, 0.92, qlabel, size=24)
+        fig.savefig(f'figs/summary/{source}_{spc}_{qkey}_month_scat.png')
+        plt.close(fig)
+
+        if summary_only:
+            gc.collect()
+            continue
         # Make site plots
         if source == 'pandora':
             for pid, pdf in sdf.groupby('pandora_id'):
@@ -768,7 +1104,9 @@ def make_plots(source, spc, df=None):
                 pname = pdf.iloc[0]['pandora_note'].split(';')[-1].strip()
                 if pname == '':
                     pname = loclabel
-                ax = plot_scatter(pdf, source, spc, tstart=tstart, tend=tend)
+                ax = plot_scatter(
+                    pdf, source, spc, hexn=1, reg=regdf.get(lockey, regdef)
+                )
                 ax.set_title(f'{qlabel} at {pname} ({pid:.0f})')
                 ax.figure.savefig(
                     f'figs/{lockey}/pandora_{spc}_{qkey}_{lockey}_scat.png'
@@ -780,15 +1118,20 @@ def make_plots(source, spc, df=None):
                     f'figs/{lockey}/pandora_{spc}_{qkey}_{lockey}_ds.png'
                 )
                 plt.close(ax.figure)
-                if qkey == 'all':
+                if qkey == allkey:
                     ax = plot_ts(pdf, source, spc)
-                    ax.set_title(f'{qlabel} at {pname} ({pid:.0f})')
+                    ax.set_title(f'Hourly IQR {qlabel} at {pname} ({pid:.0f})')
                     ax.figure.savefig(
                         f'figs/{lockey}/pandora_{spc}_{qkey}_{lockey}_ts.png'
                     )
                     plt.close(ax.figure)
+                if debug:
+                    break
         else:
             for lockey, lcfg in cfg.configs.items():
+                shortsrc = source.replace('_offl', '').replace('_nrti', '')
+                if not lcfg.get(shortsrc, False):
+                    continue
                 os.makedirs(f'figs/{lockey}', exist_ok=True)
                 print(source, spc, qkey, lockey, end='', flush=True)
                 loclabel = lockey.replace('Pandora', '')
@@ -803,7 +1146,9 @@ def make_plots(source, spc, df=None):
                 if pdf.shape[0] == 0:
                     print(flush=True)
                     continue
-                ax = plot_scatter(pdf, source, spc, tstart=tstart, tend=tend)
+                ax = plot_scatter(
+                    pdf, source, spc, hexn=1, reg=regdf.get(lockey, regdef)
+                )
                 ax.set_title(f'{qlabel} at {loclabel}')
                 ax.figure.savefig(
                     f'figs/{lockey}/{source}_{spc}_{qkey}_{lockey}_scat.png'
@@ -817,15 +1162,18 @@ def make_plots(source, spc, df=None):
                 )
                 plt.close(ax.figure)
                 print(end='.', flush=True)
-                if qkey == 'all':
+                if qkey == allkey:
                     ax = plot_ts(pdf, source, spc)
-                    ax.set(title=f'{qlabel} at {loclabel}')
+                    ax.set(title=f'Hourly IQR {qlabel} at {loclabel}')
                     ax.figure.savefig(
                         f'figs/{lockey}/{source}_{spc}_{qkey}_{lockey}_ts.png'
                     )
                     plt.close(ax.figure)
                 print(flush=True)
-
+                if debug:
+                    break
+        if debug:
+            break
         del sdf, bdf
         gc.collect()
     del df
@@ -833,10 +1181,20 @@ def make_plots(source, spc, df=None):
 
 
 if __name__ == '__main__':
-    # make_plots('airnow', 'no2')
-    # make_plots('pandora', 'no2')
-    # make_plots('pandora', 'hcho')
-    # make_plots('tropomi_nrti', 'no2')
-    # make_plots('tropomi_nrti', 'hcho')
-    make_plots('tropomi_offl', 'no2')
-    # make_plots('tropomi_offl', 'hcho')
+    import argparse
+    prsr = argparse.ArgumentParser()
+    prsr.add_argument(
+        '-s', '--summary-only', default=False, action='store_true'
+    )
+    prsr.add_argument(
+        '--source', type=lambda x: x.split(','),
+        default=['airnow', 'pandora', 'tropomi_offl']
+    )
+    prsr.add_argument(
+        '--spc', type=lambda x: x.split(','), default=['no2', 'hcho']
+    )
+    args = prsr.parse_args()
+    for source in args.source:
+        for spc in args.spc:
+            if not (source == 'airnow' and spc == 'hcho'):
+                make_plots(source, spc, summary_only=args.summary_only)
