@@ -1,10 +1,7 @@
-from . import cfg
-
-
 def _write_empty_intx_df(intxpath):
     import pandas as pd
-    # knows about one column and no records -- readable and concatenatable to any
-    # other file with tempo_time without modifying
+    # knows about one column and no records -- readable and concatenatable to
+    # any other file with tempo_time without modifying
     emptydf = pd.DataFrame.from_dict({'tempo_time': {}})
     emptydf.to_csv(intxpath, index=False)
 
@@ -27,10 +24,12 @@ def checkprod(prod, bdate, backend='xdr', verbose=0):
     avail : bool
         True if product gz file exists and its size is greater than 20 bytes.
     """
+    from . import cfg
+    from . import defn
     import os
     source = prod.split('.')[0]
     edate = bdate + cfg.data_dt
-    keys = cfg.proddef[prod]
+    keys = defn.proddef[prod]
     pfx = f'data/{source}/{bdate:%Y-%m}'
     sfx = f'{bdate:%Y-%m-%dT%H%M%SZ}_{edate:%Y-%m-%dT%H%M%SZ}.{backend}.gz'
     if backend == 'ascii':
@@ -68,6 +67,8 @@ def openchunk(key, bdate, backend='xdr'):
     df : pandas.DataFrame
         loaded from pyrsig.RsigApi.to_dataframe
     """
+    from . import cfg
+    from . import defn
 
     source = key.split('.')[0]
     edate = bdate + cfg.data_dt
@@ -78,7 +79,7 @@ def openchunk(key, bdate, backend='xdr'):
     )
 
     if df.shape[1] > 0:
-        df = df[cfg.keycols[key]]
+        df = df[defn.keycols[key]]
     cfg.libc.malloc_trim(0)
     return df
 
@@ -90,7 +91,7 @@ def open_prod(prod, dates=None, verbose=0):
     Arguments
     ---------
     prod : str
-        Compound product defined in cfg.proddef
+        Compound product defined in defn.proddef
     dates : list
         List of dates to be processed.
     verbose : int
@@ -107,9 +108,12 @@ def open_prod(prod, dates=None, verbose=0):
     from shapely import polygons, points
     import gc
     import time
-    crnrkeys = cfg.crnrcoordkeys
+    from . import cfg
+    from . import defn
 
-    keys = cfg.proddef[prod]
+    crnrkeys = defn.crnrcoordkeys
+
+    keys = defn.proddef[prod]
     if dates is None:
         dates = cfg.dates
     dates = pd.to_datetime(dates)
@@ -162,7 +166,7 @@ def open_pandora(prod, verbose=1):
     Arguments
     ---------
     prod : str
-        Compound product defined in cfg.proddef
+        Compound product defined in defn.proddef
     verbose : int
         Level of verbosity
 
@@ -172,13 +176,14 @@ def open_pandora(prod, verbose=1):
         Individual keys loaded from pyrsig.RsigApi.to_dataframe
         and combined to make a product level dataframe
     """
-
+    from . import cfg
+    from . import defn
     import geopandas as gpd
     import pandas as pd
     from shapely import points
 
     bdate, edate = cfg.pandora_date_range
-    key = cfg.proddef[prod][0]
+    key = defn.proddef[prod][0]
     source = key.split('.')[0]
     dfs = []
     qa = cfg.api.pandora_kw['minimum_quality']
@@ -204,7 +209,7 @@ def open_pandora(prod, verbose=1):
 
     df = pd.concat(dfs, ignore_index=True)
     if df.shape[1] > 0:
-        df = df[cfg.keycols[key]]
+        df = df[defn.keycols[key]]
     cfg.libc.malloc_trim(0)
     if verbose > 0:
         print('\nadd geometry pandora', end='.', flush=True)
@@ -243,6 +248,7 @@ def makeintx(spc, dates=None, verbose=1):
     import gc
     from os.path import exists
     import warnings
+    from . import cfg
 
     if dates is None:
         dates = cfg.dates
@@ -283,7 +289,9 @@ def makeintx(spc, dates=None, verbose=1):
         if not havetempo:
             print(bdate, spc, 'tempo missing or empty: skip', flush=True)
             continue
-        havetropominrti = checkprod(f'tropomi.nrti.{spc}', bdate)
+        # stop processing NRTI
+        # havetropominrti = checkprod(f'tropomi.nrti.{spc}', bdate)
+        havetropominrti = False
         havetropomioffl = checkprod(f'tropomi.offl.{spc}', bdate)
         if spc == 'no2':
             haveairnow = checkprod(f'airnow.{spc}', bdate)
@@ -403,7 +411,7 @@ def makeintx(spc, dates=None, verbose=1):
                 _write_empty_intx_df(aixpath)
             else:
                 if verbose > 0:
-                    print(bdate, spc, 'aiurnow sjoin:', end='...', flush=True)
+                    print(bdate, spc, 'airnow sjoin:', end='...', flush=True)
                 t0 = time.time()
                 aixdf = gpd.sjoin(adf, df, lsuffix='1', rsuffix='2')
                 renamer(aixdf, 'airnow')
@@ -435,6 +443,7 @@ def renamer(ixdf, source):
         'vertical_column': 'tempo_hcho_total',
         'nitrogen_dioxide_vertical_column_amount': 'pandora_no2_total',
         'nitrogendioxide_tropospheric_column': 'tropomi_no2_trop',
+        'nitrogendioxide_stratospheric_column': 'tropomi_no2_strat',
         'formaldehyde_total_vertical_column_amount': 'pandora_hcho_total',
         'formaldehyde_tropospheric_vertical_column': 'tropomi_hcho_total',
         'ELEVATION': 'pandora_elevation',
@@ -456,7 +465,8 @@ def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1, newer=None):
     verbose : int
         level of verbosity
     thin : int
-        If 1, do not thin. reduces data loaded by a factor of ten.
+        If 1, do not thin. thin=10 reduces data loaded by a factor of ten
+        for debugging.
 
     Returns
     -------
@@ -468,6 +478,7 @@ def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1, newer=None):
     import os
     import glob
     import pandas as pd
+    from . import cfg
     if source == 'pandora':
         pat = f'intx/{source}/????-??/{source}_intx_{spc}_*_{psuffix}.csv.gz'
     elif source == 'airnow':
@@ -538,6 +549,11 @@ def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1, newer=None):
         df.eval(
             'tempo_no2_sum = tempo_no2_trop + tempo_no2_strat', inplace=True
         )
+        
+    if 'tropomi_no2_strat' in df.columns and 'tropomi_no2_trop' in df.columns:
+        df.eval(
+            'tropomi_no2_sum = tropomi_no2_trop + tropomi_no2_strat', inplace=True
+        )
 
     return newestctime, df
 
@@ -579,6 +595,7 @@ def getintx(source, spc, refresh=False):
     """
     import os
     import pandas as pd
+    pd.set_option('io.hdf.default_format', 'table')
 
     hkey = f'{source}_{spc}'
     hpath = f'intx/{hkey}.h5'
@@ -599,7 +616,7 @@ def getintx(source, spc, refresh=False):
         # If there are new intersections, append them and update last
         # upload date
         if df.shape[0] != 0:
-            df.to_hdf(hpath, key=hkey, complevel=1, append=True, index=False)
+            df.to_hdf(hpath, key=hkey, complevel=1, append=True, index=False, data_columns=True)
             dtf = pd.DataFrame(dict(timestamp=[lasttime]))
             dtf.to_hdf(hpath, key=tkey, append=True, index=False)
 
@@ -612,7 +629,6 @@ if __name__ == '__main__':
     import tempodash
     import pandas as pd
     import argparse
-    from tempodash import cfg
 
     prsr = argparse.ArgumentParser()
     prsr.add_argument('after', nargs='?', default=None)

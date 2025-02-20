@@ -1,6 +1,7 @@
-__all__ = ['cfg', 'get', 'pair', 'plots', 'word', 'util']
+__all__ = ['cfg', 'defn', 'get', 'pair', 'plots', 'word', 'util']
 
 from . import cfg
+from . import defn
 from . import get
 from . import pair
 from . import plots

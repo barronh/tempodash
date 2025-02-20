@@ -8,13 +8,15 @@ def get(dates=None):
     import time
     import os
     from . import cfg
+    from . import defn
     if dates is None:
         dates = cfg.dates
+    cfg.api.bbox = cfg.bbox
     for bdate in dates:
         edate = bdate + cfg.data_dt
         opts = dict(bdate=bdate, edate=edate, compress=1, verbose=-10)
         for key in cfg.keys:
-            corners = cfg.keycorners[key]
+            corners = defn.keycorners[key]
             print(bdate, key, end=' get... ', flush=True)
             source = key.split('.')[0]
             if source == 'pandora':
@@ -58,7 +60,9 @@ if __name__ == '__main__':
     else:
         if args.end_date is None:
             args.end_date = cfg.dates[-1]
-        dates = pd.date_range(args.start_date, args.end_date, freq='1d')
+        dates = pd.date_range(
+            args.start_date, args.end_date, freq=cfg.data_freq
+        )
         dates = [d for d in dates if d in cfg.dates]
     print(dates)
     get(dates=dates)

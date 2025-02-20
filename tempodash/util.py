@@ -34,7 +34,7 @@ def iterbox(sdf, keys=None):
         Must have tempo_lon and tempo_lat
     """
     from .cfg import configs
-    from .plots import agg, pid2key
+    from .plots import pid2key
 
     if keys == 'tempo_lst_hour':
         for hkey, hdf in sdf.groupby(keys):
@@ -95,7 +95,7 @@ def regressiondf(df, outpath=None, verbose=0, refresh=False, keys=None):
     import os
     import pandas as pd
     from .plots import getxy, agg
-    from .cfg import configs
+
     if outpath is not None and os.path.exists(outpath) and not refresh:
         df = pd.read_csv(outpath, index_col=0)
         return df

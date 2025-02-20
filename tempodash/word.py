@@ -1,19 +1,35 @@
 __all__ = ['from_antype']
+import pandas as pd
 import time
 from .cfg import v1start, v2start, v3start
 # from docx.enum.section import WD_ORIENT
 # from docx.enum.style import WD_STYLE
 
+versionstrs = []
+if not pd.isnull(v1start):
+    versionstrs.append(
+        f' Version 1 (v1) data is from {v1start:%F} to {v2start:%F}.'
+    )
+if not pd.isnull(v2start):
+    versionstrs.append(
+        f' Version 2 (v2) includes data both before {v1start:%F} and '
+        + f' after {v2start:%F}.'
+    )
+if not pd.isnull(v3start):
+    versionstrs.append(
+        f' Version 3 (v3) includes data after {v3start:%F}.'
+    )
+
+versionstr = ''.join(versionstrs)
+
 intro = [
     (
         'This report has plots organized by analysis region for {antype}'
         + ' {spc}. TEMPO data over the analysis time-period varies in the'
-        + ' algorithm used for the retrieval. Version 1 (v1) data is from'
-        + f' {v1start:%F} to {v2start:%F}. Version 2 (v2) includes data'
-        + f' both before {v1start:%F} and after {v2start:%F}. Version 3 (v3)'
-        + f' includes data after {v3start:%F}. All TEMPO data has been'
-        + ' filtered for effective cloud fraction less than 0.15 based on SAO'
-        + ' recommendation at the GeoXO ACX May meeting.',
+        + ' algorithm used for the retrieval. ' + versionstr
+        + ' All TEMPO data has been filtered for effective cloud fraction less'
+        + ' than 0.15 based on SAO recommendation at the GeoXO ACX May'
+        + ' meeting.',
         None, None
     ),
     (
@@ -45,17 +61,18 @@ intro = [
         'List Bullet', None
     ),
     (
-        '{antype} {spc} Spatial Overview includes maps of the medians (TEMPO and'
-        + ' {antype}) and normalized median bias for each analysis region.'
-        + ' Maps show the whole data record (v1+v2), v1, v2, and v3 separately.',
+        '{antype} {spc} Spatial Overview includes maps of the medians (TEMPO'
+        + ' and {antype}) and normalized median bias for each analysis region.'
+        + ' Maps show the whole data record (v1+v2), v1, v2, and v3'
+        + ' separately.',
         'List Bullet', None
     ),
     (
         'Analysis Region Overview includes boxplots of {spc} observations from'
         + ' TEMPO (red) and {antype} (black) by analysis region. The results'
-        + ' are showns separately for the whole record (v1+v2), v1, v2, and v3.'
-        + ' These are followed by normalized error plots for the same regions'
-        + ' and versions.',
+        + ' are showns separately for the whole record (v1+v2), v1, v2, and'
+        + ' v3. These are followed by normalized error plots for the same'
+        + ' regions and versions.',
         'List Bullet', None
     ),
     (
@@ -65,8 +82,8 @@ intro = [
         + ' regions.', 'List Bullet', 'tropomi'
     ),
     (
-        '{antype} {spc} Detail by Analysis Region includes detail plots for each'
-        + ' region.',
+        '{antype} {spc} Detail by Analysis Region includes detail plots for'
+        + ' each region.',
         'List Bullet', None
     ),
     (

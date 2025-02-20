@@ -149,7 +149,7 @@ def agg(df, groupkeys, err=True):
             k: v for k, v in funcs.items()
             if not (k.startswith('err_') or k.startswith('nerr_'))
         }
-    dfg = df.groupby(groupkeys)
+    dfg = df.groupby(groupkeys, observed=False)
     dfm = dfg.agg(**funcs)
     return dfm
 
@@ -218,6 +218,38 @@ def get_trange(df):
     return tstart, tend
 
 
+def getaxislabels(source, spc, unit=True):
+    if source.startswith('tropomi'):
+        source = 'tropomi'
+    deflabels = (f'{source.title()} {spc.upper()}', f'TEMPO {spc.upper()}')
+    xlbl, ylbl = {
+        ('pandora', 'no2'): ('Pandora totNO$_2$', 'TEMPO totNO$_2$'),
+        ('tropomi', 'no2'): ('TropOMI tropNO$_2$', 'TEMPO tropNO$_2$'),
+        ('pandora', 'hcho'): ('Pandora totHCHO', 'TEMPO totHCHO'),
+        ('tropomi', 'hcho'): ('TropOMI totHCHO', 'TEMPO totHCHO'),
+        ('airnow', 'no2'): ('AirNow sfcNO$_2$', 'TEMPO tropNO$_2$'),
+    }.get((source, spc), deflabels)
+    if unit:
+        ylbl += ' [molec/cm$^3$]'
+        if source == 'airnow':
+            xlbl += ' [ppb]'
+        else:
+            xlbl += ' [molec/cm$^3$]'
+    return xlbl, ylbl
+
+
+def getsourcelabel(source):
+    deflabel = source.title()
+    return {
+        'pandora': 'Pandora',
+        'tropomi': 'TropOMI',
+        'tropomi_offl': 'TropOMI OFFL',
+        'tropomi_nrti': 'TropOMI NRTI',
+        'tempo': 'TEMPO',
+        'airnow': 'AirNow',
+    }.get(source, deflabel)
+
+
 def getkeys(source, spc, std=False):
     tomis = ('tropomi', 'tropomi_offl', 'tropomi_nrti')
     if source == 'pandora' and spc == 'no2':
@@ -261,7 +293,7 @@ def getxy(df, source=None, spc=None, err=False):
 
 def plot_scatter(
     df, source, spc='no2', hexn=1e4, tstart=None, tend=None, reg=None,
-    colorby='tempo_sza'
+    colorby='tempo_sza', ax=None
 ):
     """
     Arguments
@@ -277,6 +309,9 @@ def plot_scatter(
         Otherwise, use scatter.
     reg : pandas.DataFrame
         Precalculated regression from util.regressions
+    colorby : str
+        Field to color markers.
+    ax : None or matplotlib.axes.Axes
 
     Returns
     -------
@@ -302,10 +337,10 @@ def plot_scatter(
         xs = np.zeros_like(x)
         ys = np.zeros_like(y)
 
-    tcol = xk.split(spc)[-1][1:]
+    # tcol = xk.split(spc)[-1][1:]
 
     c = gdf[colorby]
-    units = 'molec/cm**2'
+    units = 'molec/cm$^2$'
     if source == 'airnow':
         units = '1'
         x = (x - x.mean()) / x.std()
@@ -323,7 +358,12 @@ def plot_scatter(
     # tstart, tend = get_trange(df)
 
     gskw = dict(right=0.925, left=0.15, bottom=0.12)
-    fig, ax = plt.subplots(figsize=(4.5, 4), gridspec_kw=gskw, rasterized=True)
+    if ax is None:
+        fig, ax = plt.subplots(
+            figsize=(4.5, 4), gridspec_kw=gskw, rasterized=True
+        )
+    else:
+        fig = ax.figure
     n = x.size
     if n < hexn:
         ax.errorbar(
@@ -363,10 +403,11 @@ def plot_scatter(
         (0, reg['dr_intercept']), slope=reg['dr_slope'], zorder=3,
         label=drstr, color='k', linestyle='--'
     )
+    xlbl, ylbl = getaxislabels(source, spc, unit=False)
     ax.set(
         aspect=1, xlim=(0, xmax), ylim=(0, xmax),
-        xlabel=f'{source.upper()} [{units}]',
-        ylabel=f'TEMPO {tcol} [{units}]',
+        xlabel=f'{xlbl} [{units}]',
+        ylabel=f'{ylbl} [{units}]',
     )
     ax.legend()
     if tstart is None and 'tempo_time_min' in df.columns:
@@ -374,7 +415,7 @@ def plot_scatter(
             df['tempo_time_min'].min(), unit='s'
         ).strftime('%Y-%m-%d')
         tend = pd.to_datetime(
-            df['tempo_time_max'].min(), unit='s'
+            df['tempo_time_max'].max(), unit='s'
         ).strftime('%Y-%m-%d')
 
     if tstart is not None:
@@ -445,9 +486,11 @@ def plot_tod_scatter(df, source, spc, tstart=None, tend=None, reghdf=None):
     cax = fig.add_axes([0.93, .1, 0.03, 0.8])
     fig.colorbar(s, cax=cax, label='count')
     start, end = pd.to_datetime(pdf['tempo_time'].quantile([0, 1]), unit='s')
-    fig.suptitle(f'{start:%Y-%m-%d} to {end:%Y-%m-%d}', size=24)
-    plt.setp(axx[-1], xlabel=f'{source.title()} VCD {spc.upper()}')
-    plt.setp(axx[:, 0], ylabel=f'TEMPO VCD (trop+strat) {spc.upper()}')
+    xlbl, ylbl = getaxislabels(source, spc)
+    xlblnu, ylblnu = getaxislabels(source, spc, unit=False)
+    fig.suptitle(f'{xlblnu} and {ylblnu}: {start:%Y-%m-%d} to {end:%Y-%m-%d}', size=24)
+    plt.setp(axx[-1], xlabel=xlbl)
+    plt.setp(axx[:, 0], ylabel=ylbl)
     if tstart is None and 'tempo_time_min' in df.columns:
         tstart = pd.to_datetime(
             df['tempo_time_min'].min(), unit='s'
@@ -456,8 +499,10 @@ def plot_tod_scatter(df, source, spc, tstart=None, tend=None, reghdf=None):
             df['tempo_time_max'].min(), unit='s'
         ).strftime('%Y-%m-%d')
 
-    if tstart is not None:
-        fig.text(0.58, 0.01, f'{tstart} to {tend}')
+    # titlestr = f'{xlblnu} and {ylblnu}'
+    # if tstart is not None:
+    #     titlestr += f': {tstart} to {tend}'
+    # fig.text(0.58, 0.01, titlestr)
 
     return fig
 
@@ -531,9 +576,12 @@ def plot_month_scatter(df, source, spc, tstart=None, tend=None, reghdf=None):
     cax = fig.add_axes([0.93, .1, 0.03, 0.8])
     fig.colorbar(s, cax=cax, label='count')
     start, end = pd.to_datetime(pdf['tempo_time'].quantile([0, 1]), unit='s')
-    fig.suptitle(f'{start:%Y-%m-%d} to {end:%Y-%m-%d}', size=24)
-    plt.setp(axx[-1], xlabel=f'{source.title()} VCD {spc.upper()}')
-    plt.setp(axx[:, 0], ylabel=f'TEMPO VCD (trop+strat) {spc.upper()}')
+    xlblnu, ylblnu = getaxislabels(source, spc, unit=False)
+    fig.suptitle(f'{xlblnu} and {ylblnu}: {start:%Y-%m-%d} to {end:%Y-%m-%d}', size=24)
+
+    xlbl, ylbl = getaxislabels(source, spc)
+    plt.setp(axx[-1], xlabel=xlbl)
+    plt.setp(axx[:, 0], ylabel=ylbl)
     if tstart is None and 'tempo_time_min' in df.columns:
         tstart = pd.to_datetime(
             df['tempo_time_min'].min(), unit='s'
@@ -542,13 +590,16 @@ def plot_month_scatter(df, source, spc, tstart=None, tend=None, reghdf=None):
             df['tempo_time_max'].min(), unit='s'
         ).strftime('%Y-%m-%d')
 
-    if tstart is not None:
-        fig.text(0.58, 0.01, f'{tstart} to {tend}')
+    # xlblnu, ylblnu = getaxislabels(source, spc, unit=False)
+    # titlestr = f'{xlblnu} and {ylblnu}'
+    # if tstart is not None:
+    #     titlestr += f': {tstart} to {tend}'
+    # fig.text(0.58, 0.01, titlestr)
 
     return fig
 
 
-def plot_ts(df, source, spc, freq='h'):
+def plot_ts(df, source, spc, freq='1h'):
     """
     Arguments
     ---------
@@ -582,35 +633,40 @@ def plot_ts(df, source, spc, freq='h'):
     )
 
     # using width instead of offset
-    tt = tv.index.values  # + pd.to_timedelta('600s')
-    st = sv.index.values  # - pd.to_timedelta('600s')
+    dt = pd.to_timedelta(freq) / 6
+    tt = tv.index.values + dt
+    st = sv.index.values - dt
     if source == 'airnow':
         right = 0.97
     else:
         right = 0.99
     gskw = dict(left=0.04, right=right)
     fig, ax = plt.subplots(figsize=(18, 4), gridspec_kw=gskw, rasterized=True)
+    xlbl, ylbl = getaxislabels(source, spc)
+    lbl = ylbl.replace('TEMPO ', '')
     if source == 'airnow':
         rax = ax
         tax = ax.twinx()
-        tax.set(ylabel=f'{spc.upper()} [ppb]')
+        ax.set(ylabel=xlbl)
+        tax.set(ylabel=ylbl)
     else:
         tax = rax = ax
+        ax.set(ylabel=lbl)
     ebs = rax.errorbar(
-        st, sv, yerr=svs, color='k', marker='o', linestyle='none', label=source
+        st, sv, yerr=svs, color='k', marker='s', linestyle='none', label=source
     )
     ebt = tax.errorbar(
-        tt, tv, yerr=tvs, color='r', marker='+', linestyle='none',
-        label='tempo'
+        tt, tv, yerr=tvs, color='r', marker='o', linestyle='none', linewidth=2,
+        label='TEMPO'
     )
     ebt[-1][0].set_linestyle('--')
-    ebs[-1][0].set_linewidth(ebt[-1][0].get_linewidth() * 2)
+    ebs[-1][0].set_linewidth(ebt[-1][0].get_linewidth() * 1.5)
     if len(queries) > 1:
         ax.axvline(v1start, color='grey', linestyle='--')
         ax.axvline(v2start, color='grey', linestyle='--')
         ax.axvline(v3start, color='grey', linestyle='--')
-    ax.legend([ebs, ebt], [source, 'tempo'])
-    ax.set(ylabel=f'{spc.upper()} [molecules/cm**2]')
+    ax.legend([ebs, ebt], [getsourcelabel(source), 'TEMPO'])
+    ax.set(ylabel=lbl)
     if source == 'airnow':
         rax.set(ylim=(0, None))
         tax.set(ylim=(0, None))
@@ -642,19 +698,24 @@ def plot_ds(df, source, spc):
         right = 0.98
     gskw = dict(left=0.1, right=right)
     fig, ax = plt.subplots(figsize=(8, 4), gridspec_kw=gskw, rasterized=True)
+    xlbl, ylbl = getaxislabels(source, spc)
     if source == 'airnow':
         tax = ax.twinx()
+        ax.set(ylabel=xlbl, xlabel='Hour (UTC + LON/15)')
+        tax.set(ylabel=ylbl, xlabel='Hour (UTC + LON/15)')
+        lbl = ylbl
     else:
+        lbl = ylbl.replace('TEMPO ', '')
         tax = ax
+        ax.set(ylabel=lbl, xlabel='Hour (UTC + LON/15)')
     ax.errorbar(
         x=sv.index.values - 0.1, y=sv, yerr=svs,
-        color='k', marker='o', linestyle='none', label=source
+        color='k', marker='o', linestyle='none', label=getsourcelabel(source)
     )
     tax.errorbar(
         x=tv.index.values + 0.1, y=tv, yerr=tvs,
         color='r', marker='+', linestyle='none', label='TEMPO'
     )
-    ax.set(ylabel='molec/cm**2', xlabel='Hour (UTC + LON/15)')
     ax.legend()
     fig.text(0.01, 0.01, f'{tstart} to {tend}')
     return ax
@@ -682,31 +743,36 @@ def plot_map(pdf, source, spc, tstart=None, tend=None):
         1, 3, figsize=(18, 4), gridspec_kw=gskw, sharey=True
     )
     ax = axx[0]
-    ckw = dict(label='TEMPO [#/cm**2]')
+    xlblnu, ylblnu = getaxislabels(source, spc, unit=False)
+    xlbl, ylbl = getaxislabels(source, spc)
+    ckw = dict(label=ylbl)
     lonkey = f'{source}_lon'.replace('_nrti', '').replace('_offl', '')
     latkey = f'{source}_lat'.replace('_nrti', '').replace('_offl', '')
     allopts = dict(norm=norm, zorder=2, colorbar=False, cmap='viridis')
     ax = pdf.plot.scatter(x=lonkey, y=latkey, c=tkey, ax=ax, **allopts)
     fig.colorbar(ax.collections[-1], ax=ax, **ckw)
-    tstr = f'{spc.upper()} TEMPO'
+    tstr = ylblnu
     if tstart is not None and tend is not None:
         tstr += f' {tstart} to {tend}'
     ax.set(title=tstr)
     ax = axx[1]
-    ckw = dict(label=f'{source} [#/cm**2]')
+    ckw = dict(label=xlbl)
     ax = pdf.plot.scatter(x=lonkey, y=latkey, c=rkey, ax=ax, **allopts)
     fig.colorbar(ax.collections[-1], ax=ax, **ckw)
-    tstr = f'{spc.upper()} {source} {tstart} to {tend}'
+    tstr = xlblnu
+    if tstart is not None and tend is not None:
+        tstr += f' {tstart} to {tend}'
     ax.set(title=tstr)
 
     edges = np.array([-100, -60, -45, -30, -15, 15, 30, 45, 60, 100])
     # edges = np.arange(-55, 60, 10)
     ax = axx[2]
-    ckw = dict(label=f'NMdnB = (TEMPO - {source}) / {source} [%]')
+    srclabel = getsourcelabel(source)
+    ckw = dict(label=f'NMdnB = (TEMPO - {srclabel}) / {srclabel} [%]')
     allopts['cmap'] = 'seismic'
     allopts['norm'] = mc.BoundaryNorm(edges, 256)
     ax = pdf.plot.scatter(x=lonkey, y=latkey, c='nmdnb', ax=ax, **allopts)
-    tstr = f'NMdnB {spc.upper()} {source} {tstart} to {tend}'
+    tstr = f'NMdnB {ylblnu.replace("TEMPO ", "")} {tstart} to {tend}'
     ax.set(title=tstr)
     fig.colorbar(ax.collections[-1], ax=ax, **ckw)
     ylim = (17, 51)
@@ -770,7 +836,7 @@ def plot_summary(pdf, source, spc, vert=True):
     srckey = source.replace('_offl', '').replace('_nrti', '')
     pdf = pdf.sort_values([f'{srckey}_lon'])
     if vert:
-        gskw = dict(bottom=0.35, top=0.95, left=0.06, right=0.97)
+        gskw = dict(bottom=0.35, top=0.95, left=0.075, right=0.985)
         figsize = (10, 5)
     else:
         gskw = dict(bottom=0.05, top=0.97, left=0.35, right=0.96)
@@ -804,21 +870,36 @@ def plot_summary(pdf, source, spc, vert=True):
     plt.setp(yboxes['whiskers'], linewidth=.25, color='red')
     plt.setp(yboxes['caps'], linewidth=.25, color='red')
     y = np.arange(pdf.shape[0])
+    xlbl, ylbl = getaxislabels(source, spc)
+    lbl = ylbl.replace('TEMPO ', '')
+    sfx = ''
     if vert:
         ylim = vlim
         xlim = (-3, y.max() + 3)
         ax.set_xticks(y)
-        _ = ax.set_xticklabels(
-            [id2label.get(i) for i in pdf.index.values], rotation=90
-        )
-        ax.set(ylabel=f'{spc.upper()} molec/cm**2', ylim=ylim, xlim=xlim)
+        lbls = [id2label.get(i) for i in pdf.index.values]
+        if all([lbl.endswith('-NAA') for lbl in lbls]):
+            sfx = ' at NAA'
+            lbls = [lbl[:-4] for lbl in lbls]
+        else:
+            sfx = ' at Pandoras'
+        _ = ax.set_xticklabels(lbls, rotation=90)
+        ax.set(ylabel=lbl, ylim=ylim, xlim=xlim)
     else:
         ax.set_yticks(y)
-        _ = ax.set_yticklabels([id2label.get(i) for i in pdf.index.values])
+        lbls = [id2label.get(i) for i in pdf.index.values]
+        if all([lbl.endswith('-NAA') for lbl in lbls]):
+            sfx = ' at NAA'
+            lbls = [lbl[:-4] for lbl in lbls]
+        else:
+            sfx = ' at Pandoras'
+        _ = ax.set_yticklabels(lbls)
         ylim = (-3, y.max() + 3)
         xlim = vlim
-        ax.set(xlabel=f'{spc.upper()} molec/cm**2', ylim=ylim, xlim=xlim)
-    titlestr = f'{source.title()} {spc.upper()}'
+        ax.set(xlabel=lbl, ylim=ylim, xlim=xlim)
+
+    xlblnu, ylblnu = getaxislabels(source, spc, unit=False)
+    titlestr = f'{xlblnu} and {ylblnu}{sfx}'
 
     if 'tempo_time_min' in pdf.columns:
         tstart = pd.to_datetime(pdf['tempo_time_min'].min(), unit='s')
@@ -833,7 +914,7 @@ def plot_summary(pdf, source, spc, vert=True):
         ax.text(.35, 0.01, 'West', transform=trans, size=18)
         ax.text(.35, 0.97, 'East', transform=trans, size=18)
     hndl = [xboxes['boxes'][0], yboxes['boxes'][0]]
-    lbls = [srckey, 'tempo']
+    lbls = [getsourcelabel(srckey), 'TEMPO']
     ax.legend(hndl, lbls, loc='upper right')
     # fig.text(0, 0, 'x')
     # fig.text(1, 1, 'x')
@@ -863,6 +944,9 @@ def plot_bias_summary(pdf, source, spc, vert=True):
     )
     plt.setp(xboxes['boxes'], facecolor='grey')
     plt.setp(xboxes['medians'], color='k')
+    srclbl = getsourcelabel(source)
+    xlbl, ylbl = getaxislabels(source, spc)
+    # lbl = ylbl.replace('TEMPO ', '')
     if vert:
         ylim = vlim
         xlim = (-3, y.max() + 3)
@@ -871,7 +955,7 @@ def plot_bias_summary(pdf, source, spc, vert=True):
             [id2label.get(i) for i in pdf.index.values], rotation=90
         )
         ax.set(
-            ylabel=f'(tempo - {source}) / {source} [%]', ylim=ylim, xlim=xlim
+            ylabel=f'(TEMPO - {srclbl}) / {srclbl} [%]', ylim=ylim, xlim=xlim
         )
     else:
         ax.set_yticks(y)
@@ -879,9 +963,11 @@ def plot_bias_summary(pdf, source, spc, vert=True):
         ylim = (-3, y.max() + 3)
         xlim = vlim
         ax.set(
-            xlabel=f'(tempo - {source}) / {source} [%]', ylim=ylim, xlim=xlim
+            xlabel=f'(TEMPO - {srclbl}) / {srclbl} [%]', ylim=ylim, xlim=xlim
         )
-    titlestr = f'{source.title()} {spc.upper()}'
+
+    xlblnu, ylblnu = getaxislabels(source, spc, unit=False)
+    titlestr = f'{xlblnu} and {ylblnu}'
 
     if 'tempo_time_min' in pdf.columns:
         tstart = pd.to_datetime(pdf['tempo_time_min'].min(), unit='s')
@@ -939,7 +1025,10 @@ def make_plots(source, spc, df=None, debug=False, summary_only=False):
         df = getintx(source, spc)
 
     adderr(df)
-
+    xlbl, ylbl = getaxislabels(source, spc, unit=False)
+    xlblnu, ylblnu = getaxislabels(source, spc, unit=False)
+    # lbl = ylbl.replace('TEMPO ', '')
+    # lblnu = ylblnu.replace('TEMPO ', '')
     os.makedirs('figs/summary', exist_ok=True)
     if len(cfg.queries) > 1:
         allkey = 'all'
@@ -980,7 +1069,7 @@ def make_plots(source, spc, df=None, debug=False, summary_only=False):
 
         # Make summary plots
         ax = plot_ts(sdf, source, spc, freq='3d')
-        ax.set(title=f'3-day IQR {qlabel} at All Sites')
+        ax.set(title=f'3-day IQR {xlblnu} and {ylblnu} {qlabel} at All Sites')
         ax.figure.savefig(
             f'figs/summary/{source}_{spc}_{qkey}_ts.png'
         )
@@ -1047,7 +1136,7 @@ def make_plots(source, spc, df=None, debug=False, summary_only=False):
             plt.close(ax.figure)
 
         axx = plot_map(obdf, source, spc, tstart=tstart, tend=tend)
-        for ax in axx.ravel():
+        for ax in axx.ravel()[::2]:
             ax.text(
                 .025, .025, qlabel, transform=ax.transAxes, size=24,
                 horizontalalignment='left'
@@ -1059,14 +1148,18 @@ def make_plots(source, spc, df=None, debug=False, summary_only=False):
         ax = plot_scatter(
             obdf, source, spc, tstart=tstart, tend=tend, colorby='tempo_lat'
         )
-        ax.set(title=f'All {source} {qlabel}')
+        ax.set(title=f'All {xlblnu} and {ylblnu}')
+        ax.text(
+            0.98, 0.02, qlabel, horizontalalignment='right',
+            verticalalignment='bottom', transform=ax.transAxes, size=24
+        )
         ax.figure.savefig(f'figs/summary/{source}_{spc}_{qkey}_all_scat.png')
         plt.close(ax.figure)
         ax = plot_ds(
             osdf.query('tempo_lst_hour > 5 and tempo_lst_hour < 18'),
             source, spc
         )
-        ax.set(title=f'All {source} {qlabel}')
+        ax.set(title=f'All {xlblnu} and {ylblnu} {qlabel}')
         ax.figure.savefig(f'figs/summary/{source}_{spc}_{qkey}_all_ds.png')
         plt.close(ax.figure)
         if source == 'pandora':
@@ -1104,9 +1197,11 @@ def make_plots(source, spc, df=None, debug=False, summary_only=False):
                 pname = pdf.iloc[0]['pandora_note'].split(';')[-1].strip()
                 if pname == '':
                     pname = loclabel
-                ax = plot_scatter(
-                    pdf, source, spc, hexn=1, reg=regdf.get(lockey, regdef)
-                )
+                if lockey in regdf.index:
+                    reg = regdf.loc[lockey]
+                else:
+                    reg = regdef
+                ax = plot_scatter(pdf, source, spc, hexn=1, reg=reg)
                 ax.set_title(f'{qlabel} at {pname} ({pid:.0f})')
                 ax.figure.savefig(
                     f'figs/{lockey}/pandora_{spc}_{qkey}_{lockey}_scat.png'
@@ -1146,9 +1241,11 @@ def make_plots(source, spc, df=None, debug=False, summary_only=False):
                 if pdf.shape[0] == 0:
                     print(flush=True)
                     continue
-                ax = plot_scatter(
-                    pdf, source, spc, hexn=1, reg=regdf.get(lockey, regdef)
-                )
+                if lockey in regdf.index:
+                    reg = regdf.loc[lockey]
+                else:
+                    reg = regdef
+                ax = plot_scatter(pdf, source, spc, hexn=1, reg=reg)
                 ax.set_title(f'{qlabel} at {loclabel}')
                 ax.figure.savefig(
                     f'figs/{lockey}/{source}_{spc}_{qkey}_{lockey}_scat.png'
