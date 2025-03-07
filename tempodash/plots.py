@@ -841,7 +841,7 @@ def plot_summary(pdf, source, spc, vert=True):
     else:
         gskw = dict(bottom=0.05, top=0.97, left=0.35, right=0.96)
         figsize = (5, 10)
-    fig, ax = plt.subplots(figsize=figsize, dpi=144, gridspec_kw=gskw)
+    fig, ax = plt.subplots(figsize=figsize, gridspec_kw=gskw)
     xkey, ykey, xskey, yskey = getkeys(source, spc, std=True)
     xv, yv, xerr, yerr = getxy(pdf, source, spc, err=True)
     xqkeys = [k for k in pdf if k.startswith(xkey + '_q')]
@@ -930,7 +930,7 @@ def plot_bias_summary(pdf, source, spc, vert=True):
     else:
         gskw = dict(bottom=0.05, top=0.97, left=0.35, right=0.96)
         figsize = (5, 10)
-    fig, ax = plt.subplots(figsize=figsize, dpi=144, gridspec_kw=gskw)
+    fig, ax = plt.subplots(figsize=figsize, gridspec_kw=gskw)
     xkey, ykey, xskey, yskey = getkeys(source, spc, std=True)
     xv, yv, xerr, yerr = getxy(pdf, source, spc, err=True)
     qkeys = [k for k in pdf if k.startswith('nerr_q')]
@@ -1279,7 +1279,11 @@ def make_plots(source, spc, df=None, debug=False, summary_only=False):
 
 if __name__ == '__main__':
     import argparse
+    import matplotlib.pyplot as plt
     prsr = argparse.ArgumentParser()
+    prsr.add_argument(
+        '-d', '--dpi', default=100.0, type=float
+    )
     prsr.add_argument(
         '-s', '--summary-only', default=False, action='store_true'
     )
@@ -1291,6 +1295,7 @@ if __name__ == '__main__':
         '--spc', type=lambda x: x.split(','), default=['no2', 'hcho']
     )
     args = prsr.parse_args()
+    plt.rcParams['figure.dpi'] = args.dpi
     for source in args.source:
         for spc in args.spc:
             if not (source == 'airnow' and spc == 'hcho'):

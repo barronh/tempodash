@@ -500,7 +500,7 @@ def loadintx(source, spc, psuffix='0pt03', verbose=0, thin=1, newer=None):
     dfs = []
     chunks = max(1, npaths // 200)
     if verbose > 0:
-        print(f'Found {npaths}')
+        print(f'Found {npaths} {source} {spc}')
 
     for pi, p in enumerate(paths):
         df = pd.read_csv(p)
