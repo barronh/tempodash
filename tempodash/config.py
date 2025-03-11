@@ -45,7 +45,9 @@ for reg in regions:
         for k in _locs if locconfigs[k].get('pandora', False)
     ])
 
-_otherlocs = [lockey for lockey in list(locconfigs) if lockey not in regalllocs]
+_otherlocs = [
+    lockey for lockey in list(locconfigs) if lockey not in regalllocs
+]
 if len(_otherlocs) > 0:
     print('WARN:: Uncategorized location')
     regions.append({'Other': _otherlocs})
@@ -61,13 +63,19 @@ api.tropomi_kw['maximum_cloud_fraction'] = 1.0
 
 default_where = 'tempo_sza <= 70 and tempo_cloud_eff < 0.2'
 default_pandora_where = ' or '.join([
-    '(tempo_lon >= {0} and tempo_lon <= {2} and tempo_lat >= {1} and tempo_lat <= {3})'.format(*cfg['bbox'])
+    (
+        '(tempo_lon >= {0} and tempo_lon <= {2}'
+        ' and tempo_lat >= {1} and tempo_lat <= {3})'
+    ).format(*cfg['bbox'])
     for k, cfg in locconfigs.items()
     if cfg['pandora']
 ])
 default_pandora_where = f'({default_pandora_where}) and ({default_where})'
 default_naa_where = ' or '.join([
-    '(tempo_lon >= {0} and tempo_lon <= {2} and tempo_lat >= {1} and tempo_lat <= {3})'.format(*cfg['bbox'])
+    (
+        '(tempo_lon >= {0} and tempo_lon <= {2}'
+        + ' and tempo_lat >= {1} and tempo_lat <= {3})'
+    ).format(*cfg['bbox'])
     for k, cfg in locconfigs.items()
     if not cfg['pandora']
 ])

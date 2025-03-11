@@ -34,14 +34,20 @@ def depends(outpaths, inpaths, verbose=1):
             print(f'INFO::expanded {outpaths}')
         outpaths = sorted(glob.glob(outpaths))
         if verbose > 1:
-            print(f'INFO::{outpaths[0]} ... {outpaths[-1]} (n={len(outpaths)})')
+            print(
+                f'INFO::{outpaths[0]} ... {outpaths[-1]} (n={len(outpaths)})'
+            )
     if len(outpaths) == 0:
         if verbose > 1:
-            print(f'INFO:: No outpaths found')
+            print('INFO:: No outpaths found')
         return True
     else:
-        inupdated = [os.stat(p).st_mtime if os.path.exists(p) else 0 for p in inpaths]
-        outupdated = [os.stat(p).st_mtime if os.path.exists(p) else 0 for p in outpaths]
+        inupdated = [
+            os.stat(p).st_mtime if os.path.exists(p) else 0 for p in inpaths
+        ]
+        outupdated = [
+            os.stat(p).st_mtime if os.path.exists(p) else 0 for p in outpaths
+        ]
         remake = min(outupdated) < max(inupdated)
         if verbose > 0:
             indate = pd.to_datetime(max(inupdated), unit='s')

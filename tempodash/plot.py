@@ -5,7 +5,9 @@ def getdatetag(df):
     return f'{s:%F} to {e:%F}'
 
 
-def plot_summary_bars(bdf, xkey, subplot_kw=None, ax_kw=None, axx=None, x=None):
+def plot_summary_bars(
+    bdf, xkey, subplot_kw=None, ax_kw=None, axx=None, x=None
+):
     import matplotlib.pyplot as plt
     import numpy as np
     if x is None:
@@ -120,11 +122,16 @@ def plot_scatter(
     return ax
 
 
-def plot_weekdayweekend(wmdf, ykey, xkey, source=None, ax_kw=None, subplots_kw=None):
+def plot_weekdayweekend(
+    wmdf, ykey, xkey, source=None, ax_kw=None, subplots_kw=None
+):
     import matplotlib.pyplot as plt
     import pandas as pd
     if source is None:
-        print(f'WARN:: source inferred from {xkey}/{ykey} for plot_weekdayweekend')
+        print(
+            f'WARN:: source inferred from {xkey}/{ykey} for'
+            + ' plot_weekdayweekend'
+        )
         source = xkey.split('_')[0].title()
     if ax_kw is None:
         ax_kw = {}

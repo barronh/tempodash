@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 from .config import locconfigs, id2cfg, id2key, regions
-import .plot as tplot
+from . import plot as tplot
 import numpy as np
 
 

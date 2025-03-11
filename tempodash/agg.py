@@ -51,7 +51,7 @@ def linregresdf(df, orthogonal=False):
     nan = float('nan')
     try:
         lrv = linregress(df)
-    except:
+    except Exception:
         out = {
             'lr_slope': nan, 'lr_intercept': nan,
             'rvalue': nan, 'lr_pvalue': nan,
@@ -74,7 +74,7 @@ def linregresdf(df, orthogonal=False):
             out['dr_intercept'] = dr.beta[1]
             out['dr_slope_std'] = dr.sd_beta[0]
             out['dr_intercept_std'] = dr.sd_beta[1]
-        except:
+        except Exception:
             out.update(
                 dr_slope=nan, dr_intercept=nan,
                 dr_slope_std=nan, dr_intercept_std=nan
@@ -280,8 +280,8 @@ def tempogrouper(df, ykey=None):
         1e16, 2e16, 4e16, 6e16, 8e16,
         np.inf
     ]
-    labels=edges[:-1]
+    labels = edges[:-1]
     intv = pd.cut(df[ykey], bins=edges, labels=labels).astype('d')
-    #df[ykey].max()
-    #intv = (df[ykey] // interval) * interval
+    # df[ykey].max()
+    # intv = (df[ykey] // interval) * interval
     return intv

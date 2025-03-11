@@ -21,11 +21,11 @@ def makeintx(spc, start_date, end_date, verbose=0, hourdf=None):
     pan_store = intx.intxstore('tempo', 'pandora', spc)
     minhour = hourdf.reset_index()['time'].min()
     if tomi_store.mostrecent() < minhour:
-        print(f'WARN:: Most recent TropOMI intersection is before {start_date}')
+        print(f'WARN:: Most recent TropOMI intersection before {start_date}')
     if pan_store.mostrecent() < minhour:
-        print(f'WARN:: Most recent Pandora intersection is before {start_date}')
+        print(f'WARN:: Most recent Pandora intersection before {start_date}')
     if spc == 'no2' and an_store.mostrecent() < minhour:
-        print(f'WARN:: Most recent AirNow intersection is before {start_date}')
+        print(f'WARN:: Most recent AirNow intersection before {start_date}')
     if verbose > 1:
         print(hourdf.reset_index().astype('i8').describe().to_markdown())
     if verbose > 0:
