@@ -99,7 +99,7 @@ def q1(ds):
 
     Example
     -------
-    >>> from tempoeval.agg import q1
+    >>> from tempodash.agg import q1
     >>> import pandas as pd
     >>> import numpy as np
     >>> q1(pd.Series(np.random.normal(0, 1, size=1000)))
@@ -124,7 +124,7 @@ def q3(ds):
 
     Example
     -------
-    >>> from tempoeval.agg import q3
+    >>> from tempodash.agg import q3
     >>> import pandas as pd
     >>> import numpy as np
     >>> q3(pd.Series(np.random.normal(0, 1, size=1000)))

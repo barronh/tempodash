@@ -2,8 +2,8 @@
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-import tempoeval
-import tempoeval.plot as tplot
+from .config import locconfigs, id2cfg, id2key, regions
+import .plot as tplot
 import numpy as np
 
 
@@ -11,7 +11,7 @@ def makeplots(xkey, ykey, lockey):
     if lockey == 'summary':
         loclabel = 'All Sites'
     else:
-        loclabel = tempoeval.config.locconfigs[lockey]['label']
+        loclabel = locconfigs[lockey]['label']
 
     os.makedirs(f'figs/{lockey}', exist_ok=True)
     qname = {
@@ -350,18 +350,18 @@ def makebylocplots(xkey, ykey, lockey):
     lmdf = pd.read_csv(f'csv/{lockey}/{ykey}_vs_{xkey}_byloc.csv')
     if 'pandora_id' in lmdf.columns:
         lmdf['label'] = [
-            tempoeval.config.id2cfg[i]['label'] for i in lmdf.pandora_id
+            id2cfg[i]['label'] for i in lmdf.pandora_id
         ]
-        lmdf['lockey'] = [tempoeval.config.id2key[i] for i in lmdf.pandora_id]
+        lmdf['lockey'] = [id2key[i] for i in lmdf.pandora_id]
         lmdf.set_index('lockey', inplace=True, drop=False)
     else:
         lmdf['label'] = [
-            tempoeval.config.locconfigs[k]['label']
+            locconfigs[k]['label']
             for k in lmdf['lockey']
         ]
         lmdf.set_index('lockey', inplace=True, drop=False)
     sorted_idx = reduce(
-        list.__add__, [reg['lockeys'] for reg in tempoeval.config.regions]
+        list.__add__, [reg['lockeys'] for reg in regions]
     )
     sorted_idx = [i for i in sorted_idx if i in lmdf.index.values]
     assert lmdf.index.isin(sorted_idx).all()
@@ -414,7 +414,7 @@ def plotbyloc(xkey, ykey, lockey, slmdf, sfx=''):
     # Create Stats Plot by Location
     # -----------------------------
     regcount = []
-    for reg in tempoeval.config.regions:
+    for reg in tempodash.config.regions:
         regcnt = sum([1 for i in slmdf.index.values if i in reg['lockeys']])
         if regcnt > 0:
             regcount.append((reg['label'], regcnt))
@@ -476,7 +476,7 @@ def plotbyloc(xkey, ykey, lockey, slmdf, sfx=''):
 
 if __name__ == '__main__':
     import argparse
-    import tempoeval.util
+    import tempodash.util
     from joblib import Parallel, delayed
 
     xychoices = [
@@ -505,7 +505,7 @@ if __name__ == '__main__':
         # if any csv is older than any store; remake
         spc = ykey.split('_')[1]
         src = xkey.split('_' + spc)[0]
-        remake = tempoeval.util.depends(
+        remake = tempodash.util.depends(
             f'figs/*/{ykey}_vs_{xkey}*.png', f'csv/*/{ykey}_vs_{xkey}*.csv', 1
         )
         if not remake:
@@ -514,7 +514,7 @@ if __name__ == '__main__':
         makebylocplots(xkey, ykey, 'summary')
         makeplots(xkey, ykey, 'summary')
         actions = []
-        for lockey, cfg in tempoeval.config.locconfigs.items():
+        for lockey, cfg in locconfigs.items():
             print(xkey, ykey, lockey, '...', flush=True)
             if 'pandora_no2_total' == xkey and not cfg.get('pandora', False):
                 continue

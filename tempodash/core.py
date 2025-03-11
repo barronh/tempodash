@@ -140,7 +140,7 @@ class dataloader:
         >>> keys = ['airnow.no2']
         >>> an = dataloader('airnow', 'no2', '2023-09-01T17Z', keys=keys)
         >>> an
-        <tempoeval.core.dataloader object at 0x1479185c0550>
+        <tempodash.core.dataloader object at 0x1479185c0550>
         """
         self.source = source
         self.spc = spc
@@ -341,8 +341,8 @@ class dataloader:
 
         Example
         -------
-        >>> from tempoeval.core import dataloader
-        >>> from tempoeval.intx import intxstore
+        >>> from tempodash.core import dataloader
+        >>> from tempodash.intx import intxstore
         >>> store = intxstore('airnow', 'pandora', 'no2')
         >>> akeys = ['airnow.no2']
         >>> an = dataloader('airnow', 'no2', '2023-09-01T17Z', keys=akeys)
@@ -392,10 +392,10 @@ class tempo(dataloader):
 
         Example
         -------
-        >>> from tempoeval import tempo
+        >>> from tempodash import tempo
         >>> te = tempo('no2', '2023-09-01T17Z')
         >>> te
-        <tempoeval.core.tempo object at 0x14b3b06cc430>
+        <tempodash.core.tempo object at 0x14b3b06cc430>
         """
         keys = {
             'no2': [
@@ -428,7 +428,7 @@ class tempo(dataloader):
 
         Example
         -------
-        >>> from tempoeval import tempo
+        >>> from tempodash import tempo
         >>> te = tempo('no2', '2023-09-01T17Z')
         >>> df = te.get()
         >>> df
@@ -472,10 +472,10 @@ class tropomi(dataloader):
 
         Example
         -------
-        >>> from tempoeval import tropomi
+        >>> from tempodash import tropomi
         >>> tr = tropomi('no2', '2023-09-01T17Z')
         >>> tr
-        <tempoeval.core.tropomi object at 0x14b3b06cc430>
+        <tempodash.core.tropomi object at 0x14b3b06cc430>
         """
         keys = {
             'no2': [
@@ -507,7 +507,7 @@ class tropomi(dataloader):
 
         Example
         -------
-        >>> from tempoeval import tropomi
+        >>> from tempodash import tropomi
         >>> tr = tropomi('no2', '2023-09-01T17Z')
         >>> df = tr.get()
         >>> df
@@ -550,10 +550,10 @@ class airnow(dataloader):
 
         Example
         -------
-        >>> from tempoeval import airnow
+        >>> from tempodash import airnow
         >>> an = airnow('no2', '2023-09-01T17Z')
         >>> an
-        <tempoeval.core.airnow object at 0x14b39e1e0c10>
+        <tempodash.core.airnow object at 0x14b39e1e0c10>
         """
         assert spc == 'no2'
         keys = ['airnow.no2']
@@ -574,7 +574,7 @@ class airnow(dataloader):
 
         Example
         -------
-        >>> from tempoeval import airnow
+        >>> from tempodash import airnow
         >>> an = airnow('no2', '2023-09-01T17Z')
         >>> df = an.get()
         >>> df
@@ -615,10 +615,10 @@ class pandora(dataloader):
 
         Example
         -------
-        >>> from tempoeval import pandora
+        >>> from tempodash import pandora
         >>> pm = pandora('no2', '2023-09-01T00Z', '2023-09-30T00Z')
         >>> pm
-        <tempoeval.core.pandora object at 0x14b3b06cab80>
+        <tempodash.core.pandora object at 0x14b3b06cab80>
         >>> df = pm.get()
         >>> df
                 pandora_time  pandora_lon  pandora_lat  ... pandora_no2_total
@@ -707,7 +707,7 @@ class pandora(dataloader):
 
         Example
         -------
-        >>> from tempoeval import pandora
+        >>> from tempodash import pandora
         >>> pm = pandora('no2', '2023-09-01T00Z', '2023-09-30T00Z')
         >>> pm.set_bdate('2023-09-01T17Z')
         >>> pm.get()

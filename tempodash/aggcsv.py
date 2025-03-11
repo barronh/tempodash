@@ -3,10 +3,10 @@ aggcsv.py rewritten to read data from disk only once.
 """
 import os
 import pandas as pd
-from tempoeval import loadintx
-from tempoeval.agg import agg, szagrouper, lsthgrouper, monthlygrouper, byloc
-from tempoeval.agg import weeklygrouper, cldgrouper, tempogrouper
-from tempoeval.config import default_where, locconfigs
+from . import loadintx
+from .agg import agg, szagrouper, lsthgrouper, monthlygrouper, byloc
+from .agg import weeklygrouper, cldgrouper, tempogrouper
+from .config import default_where, locconfigs
 from joblib import Parallel, delayed
 
 
@@ -66,7 +66,7 @@ def csvs(cdf, lockey, overwrite=False, **grpopts):
 
 if __name__ == '__main__':
     import argparse
-    import tempoeval.util
+    import tempodash.util
     xychoices = [
         'pandora_no2_total,tempo_no2_sum',
         'tropomi_offl_no2_trop,tempo_no2_trop',
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         src = xkey.split('_' + spc)[0]
         # Quick check if this needs to be done
         # if any csv is older than any store; remake
-        remake = tempoeval.util.depends(
+        remake = tempodash.util.depends(
             f'csv/*/{ykey}_vs_{xkey}*.csv',
             f'intx/stores/tempo_{src}_{spc}_????-??.h5', 1
         )

@@ -22,7 +22,7 @@ class intxstore:
 
         Example
         -------
-        >>> from tempoeval.intx import intxstore
+        >>> from tempodash.intx import intxstore
         >>> store = intxstore('tempo', 'pandora', 'no2')
         >>> store.hasdate('2023-08-01')
         False
@@ -52,7 +52,7 @@ class intxstore:
 
         Example
         -------
-        >>> from tempoeval.intx import intxstore
+        >>> from tempodash.intx import intxstore
         >>> import pandas as pd
         >>> store = intxstore('tempo', 'pandora', 'no2')
         >>> dates = pd.date_range('2023-08-01', '2024-05-01')
@@ -93,7 +93,7 @@ class intxstore:
 
         Example
         -------
-        >>> from tempoeval.intx import intxstore
+        >>> from tempodash.intx import intxstore
         >>> store = intxstore('tempo', 'pandora', 'no2')
         >>> store.set_month('2024-06-01')
         """
@@ -120,7 +120,7 @@ class intxstore:
 
         Example
         -------
-        >>> from tempoeval.intx import intxstore
+        >>> from tempodash.intx import intxstore
         >>> store = intxstore('tempo', 'pandora', 'no2')
         >>> store.hasdate('2024-01-01T17')
         True
@@ -155,7 +155,7 @@ class intxstore:
 
         Example
         -------
-        >>> from tempoeval.intx import intxstore
+        >>> from tempodash.intx import intxstore
         >>> import pandas as pd
         >>> t = [0.0, 1800.0]
         >>> oth = [0.0, 5.0]
@@ -251,7 +251,7 @@ def loadintx(
 
     Example
     -------
-    >>> from tempoeval import loadintx
+    >>> from tempodash import loadintx
     >>> cols = ['tempo_time', 'tempo_no2_sum', 'pandora_no2_total']
     >>> sdt = '2023-08-01'
     >>> edt = '2024-05-01'
