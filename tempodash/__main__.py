@@ -1,23 +1,29 @@
-import gc
-from .cfg import libc
-from .plots import makeplots
-from .get import get
-from .pair import makeintx
-from .word import from_antype
+from . import makeintx
+import argparse
+import pandas as pd
 
-# Get all the data
-get()
-# Make all the intersections
-for spc in ['no2', 'hcho']:
-    makeintx(spc)
-    for source in ['pandora', 'tropomi_offl', 'airnow']:
-        # Make all the plots
-        if (source == 'airnow' and spc == 'hcho'):
-            continue
-        try:
-            makeplots(source, spc)
-            from_antype(source, spc)
-        except Exception as e:
-            print(source, spc, str(e))
-        gc.collect()
-        libc.malloc_trim(1)
+twoweeks = pd.to_timedelta('14d')
+oneseconds = pd.to_timedelta('1s')
+today = pd.to_datetime('now').floor('1d')
+refdate = today - twoweeks - twoweeks
+
+prsr = argparse.ArgumentParser()
+
+
+prsr.add_argument('--verbose', action='count', default=0)
+prsr.add_argument('--spc', default='no2', choices={'no2', 'hcho'})
+prsr.add_argument('start_date', nargs='?', default=None, type=pd.to_datetime)
+prsr.add_argument('end_date', nargs='?', default=None, type=pd.to_datetime)
+args = prsr.parse_args()
+
+# run for two weeks starting four weeks ago
+if args.start_date is None:
+    args.start_date = refdate
+
+if args.end_date is None:
+    end_date = args.start_date + pd.offsets.MonthBegin() - oneseconds
+    args.end_date = min(end_date, today - twoweeks - oneseconds)
+
+if args.end_date <= args.start_date:
+    prsr.exit(status=0, message='WARN:: no data to process')
+makeintx(**vars(args))
