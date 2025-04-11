@@ -14,11 +14,29 @@ loadintx = intx.loadintx
 
 
 def makeintx(spc, start_date, end_date, verbose=0, hourdf=None):
-    if hourdf is None:
-        hourdf = dates.hourframe(spc, start_date, end_date)
+    import pandas as pd
+    twoweeks = pd.to_timedelta('14d')
+    oneseconds = pd.to_timedelta('1s')
+    oneday = pd.to_timedelta('1d')
+    today = pd.to_datetime('now').floor('1d')
+    lastpossible = today - twoweeks - oneseconds
     tomi_store = intx.intxstore('tempo', 'tropomi_offl', spc)
     an_store = intx.intxstore('tempo', 'airnow', spc)
     pan_store = intx.intxstore('tempo', 'pandora', spc)
+    if start_date is None:
+        lasttomi = tomi_store.mostrecent()
+        lastan = an_store.mostrecent()
+        lastpan = pan_store.mostrecent()
+        start_date = (min([lasttomi, lastan, lastpan]) - oneday).floor('1d')
+        print(f'WARN:: start default: {start_date:%F}')
+    if end_date is None:
+        end_date = lastpossible
+        print(f'WARN:: end default: {end_date:%F}')
+    if end_date <= start_date:
+        raise ValueError('WARN:: end < start; no data to process')
+
+    if hourdf is None:
+        hourdf = dates.hourframe(spc, start_date, end_date)
     minhour = hourdf.reset_index()['time'].min()
     if tomi_store.mostrecent() < minhour:
         print(f'WARN:: Most recent TropOMI intersection before {start_date}')
