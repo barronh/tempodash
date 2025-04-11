@@ -23,11 +23,16 @@ def makeintx(spc, start_date, end_date, verbose=0, hourdf=None):
     tomi_store = intx.intxstore('tempo', 'tropomi_offl', spc)
     an_store = intx.intxstore('tempo', 'airnow', spc)
     pan_store = intx.intxstore('tempo', 'pandora', spc)
-    if start_date is None:
-        lasttomi = tomi_store.mostrecent()
+    lasttomi = tomi_store.mostrecent()
+    lastpan = pan_store.mostrecent()
+    lasts = [lasttomi, lastpan]
+    if spc == 'no2':
         lastan = an_store.mostrecent()
-        lastpan = pan_store.mostrecent()
-        start_date = (min([lasttomi, lastan, lastpan]) - oneday).floor('1d')
+        lasts.append(lastan)
+    else:
+        lastan = None
+    if start_date is None:
+        start_date = (min(lasts) - oneday).floor('1d')
         print(f'WARN:: start default: {start_date:%F}')
     if end_date is None:
         end_date = lastpossible
@@ -38,11 +43,11 @@ def makeintx(spc, start_date, end_date, verbose=0, hourdf=None):
     if hourdf is None:
         hourdf = dates.hourframe(spc, start_date, end_date)
     minhour = hourdf.reset_index()['time'].min()
-    if tomi_store.mostrecent() < minhour:
+    if lasttomi < minhour:
         print(f'WARN:: Most recent TropOMI intersection before {start_date}')
-    if pan_store.mostrecent() < minhour:
+    if lastpan < minhour:
         print(f'WARN:: Most recent Pandora intersection before {start_date}')
-    if spc == 'no2' and an_store.mostrecent() < minhour:
+    if spc == 'no2' and lastan < minhour:
         print(f'WARN:: Most recent AirNow intersection before {start_date}')
     if verbose > 1:
         print(hourdf.reset_index().astype('i8').describe().to_markdown())
