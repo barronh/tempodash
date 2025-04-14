@@ -11,6 +11,7 @@ import pyrsig
 import numpy as np
 
 rawcfg = json.load(open('config.json', 'r'))
+server = rawcfg.get('server', 'ofmpub.epa.gov')
 baddates = sorted(rawcfg['baddates'])
 tropomi_utc_hours = sorted(rawcfg['hours']['tropomi'])
 tempo_utc_hours = sorted(rawcfg['hours']['tempo'])
@@ -53,7 +54,7 @@ if len(_otherlocs) > 0:
     regions.append({'Other': _otherlocs})
 
 bbox = (-150, 15, -50, 65)
-api = pyrsig.RsigApi(bbox=bbox, server='maple.hesc.epa.gov')
+api = pyrsig.RsigApi(bbox=bbox, server=server)
 api.tempo_kw['api_key'] = open('/home/bhenders/.tempokey', 'r').read().strip()
 api.tempo_kw['maximum_cloud_fraction'] = 1
 api.tempo_kw['maximum_solar_zenith_angle'] = 90
