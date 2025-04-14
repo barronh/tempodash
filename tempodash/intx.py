@@ -72,10 +72,13 @@ class intxstore:
         dfs = []
         for date in mdates:
             self.set_month(date)
-            df = pd.read_hdf(
-                self.hdfpath, key=self.datakey, where=where, columns=columns
-            )
-            dfs.append(df)
+            if os.path.exists(self.hdfpath):
+                df = pd.read_hdf(
+                   self.hdfpath, key=self.datakey, where=where, columns=columns
+                )
+                dfs.append(df)
+        if len(dfs) == 0:
+            raise ValueError(f'No intx files found; e.g, {self.hdfpath}')
         return pd.concat(dfs, ignore_index=True)
 
     def set_month(self, bdate, force=False):
@@ -200,18 +203,23 @@ class intxstore:
 
         return nrows
 
-    def mostrecent(self, to_datetime=True):
+    def mostrecent(self, to_datetime=True, default=None):
         """
         What is the most recent hour of in all stores for this spc?
         """
         import glob
         import pandas as pd
+        if default is None:
+            default = pd.NaT
         hdfpat = f'intx/stores/{self.datakey}_????-??.h5'
         print(hdfpat)
         hdfpaths = sorted(glob.glob(hdfpat))
-        hdfpath = hdfpaths[-1]
-        tdf = pd.read_hdf(hdfpath, key=self.datekey)
-        time = tdf['time'].max()
+        if len(hdfpaths) == 0:
+            time = default
+        else:
+            hdfpath = hdfpaths[-1]
+            tdf = pd.read_hdf(hdfpath, key=self.datekey)
+            time = tdf['time'].max()
         if to_datetime:
             time = pd.to_datetime(time, unit='s')
         return time
