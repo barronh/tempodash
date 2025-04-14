@@ -344,6 +344,10 @@ def makeplots(xkey, ykey, lockey):
 def makebylocplots(xkey, ykey, lockey):
     import pandas as pd
     from functools import reduce
+    import os
+
+    os.makedirs(f'figs/{lockey}', exist_ok=True)
+
     # %%
     # By Location as a series of IQR boxes
     # ------------------------------------
