@@ -3,7 +3,7 @@ import os
 
 
 class intxstore:
-    def __init__(self, source1, source2, spc):
+    def __init__(self, source1, source2, spc, root=None):
         """
         Arguments
         ---------
@@ -15,6 +15,8 @@ class intxstore:
             (source2 typically not 'tempo')
         spc : str
             'no2' or 'hcho'
+        root : str
+            Path to data root.
 
         Returns
         -------
@@ -33,6 +35,10 @@ class intxstore:
         self.datekey = 'time'
         self.datakey = f'{self.source1}_{self.source2}_{self.spc}'
         self.month = None
+        if root is None:
+            from . import config
+            root = config.dataroot
+        self.root = root
 
     def load(self, dates, where=None, columns=None):
         """
@@ -103,7 +109,7 @@ class intxstore:
         month = pd.to_datetime(bdate).strftime('%Y-%m')
         if self.month != month or force:
             self.month = month
-            self.hdfpath = f'intx/stores/{self.datakey}_{month}.h5'
+            self.hdfpath = f'{self.root}/intx/stores/{self.datakey}_{month}.h5'
             if os.path.exists(self.hdfpath):
                 self._timedf = pd.read_hdf(self.hdfpath, key=self.datekey)
             else:
@@ -211,7 +217,7 @@ class intxstore:
         import pandas as pd
         if default is None:
             default = pd.NaT
-        hdfpat = f'intx/stores/{self.datakey}_????-??.h5'
+        hdfpat = f'{self.root}/intx/stores/{self.datakey}_????-??.h5'
         print(hdfpat)
         hdfpaths = sorted(glob.glob(hdfpat))
         if len(hdfpaths) == 0:
@@ -227,7 +233,7 @@ class intxstore:
 
 def loadintx(
     source, spc, start_date, end_date, where=None, columns=None,
-    bbox=None, lockey=None
+    bbox=None, lockey=None, ysource='tempo'
 ):
     """
     Load intersected data easily.
@@ -290,16 +296,16 @@ def loadintx(
         else:
             where = []
         where.append((
-            'tempo_lon >= {0} and tempo_lon <= {2}'
-            ' and tempo_lat >= {1} and tempo_lat <= {3}'
+            f'{ysource}_lon >= {0} and {ysource}_lon <= {2}'
+            f' and {ysource}_lat >= {1} and {ysource}_lat <= {3}'
         ).format(*bbox))
 
     dates = pd.date_range(start_date, end_date)
-    store = intxstore('tempo', source, spc)
+    store = intxstore(ysource, source, spc)
     df = store.load(dates, where=where, columns=columns)
-    if 'tempo_time' not in df.columns:
+    if f'{ysource}_time' not in df.columns:
         warnings.warn('loadintx returned all times in files')
     nstart = dates[0].to_numpy().astype('i8') / 1e9
     nend = dates[-1].to_numpy().astype('i8') / 1e9 + 3599.
-    df = df.query(f'tempo_time >= {nstart} and tempo_time <= {nend}')
+    df = df.query(f'{ysource}_time >= {nstart} and {ysource}_time <= {nend}')
     return df

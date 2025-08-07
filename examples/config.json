@@ -1,0 +1,986 @@
+{
+    "comments": {
+        "server": "ofmpub.epa.gov (external) or maple.hesc.epa.gov (at EPA)",
+        "baddates": "dictionary of bad dates and a description for each",
+        "hours": "dictionary of list of UTC hours to use for TEMPO and TropOMI",
+        "regions": "List of dictionaries defining regions (labels and location keys)",
+        "locations": {
+            "General": "Each key defines an analysis region.",
+            "bbox": "defines the spatial bounding box [east_lon, south_lat, west_lon, north_lat]",
+            "label": "The name for this location to be used in figures.",
+            "labelxy": "The location for the label on a map.",
+            "region": "vestigial",
+            "description": "description of the location for more information.",
+            "airnow,pandora,pandora_hcho,tropomi": "Defines whether to perform these types of analyses.",
+            "Tuscan Buttes": "removed Tuscan Buttes because it is too small for this analysis",
+            "more comments": "Go above this line"
+        }
+    },
+    "server": "maple.hesc.epa.gov",
+    "baddates": {
+        "2020-01-01": "Data dropouts (10-18 10-19 10-20 10-21 10-30 11-09) are not flagged here",
+        "2023-08-03": "Missing",
+        "2023-08-06": "Missing", "2023-08-07": "Missing", "2023-08-08": "Missing",
+        "2023-08-17": "Missing", "2023-08-18": "Missing", "2023-08-19": "Missing",
+        "2023-08-20": "Missing",
+        "2023-10-29": "Bad INR",
+        "2023-11-08": "Bad INR S01-S07"
+    },
+    "hours": {
+        "tempo": [0, 1, 2, 3, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+        "tropomi": [16, 17, 18, 19, 20, 21, 22, 23],
+        "comments": "tempo maybe include 4"
+    },
+    "regions": [
+        {
+            "label": "CA",
+            "lockeys": [
+                "RichmondCAPandora", "NAA_San_Francisco",
+                "MountainViewCAPandora", "SanJoseCAPandora",
+                "NAA_Sutter_Buttes", "NAA_Chico",
+                "NAA_Sacramento", "NAA_Nevada_Co",
+                "NAA_Amador_Co", "NAA_Calaveras_Co",
+                "NAA_San_Luis_Obispo", "NAA_Tuolumne_Co",
+                "NAA_Mariposa_Co", "NAA_San_Joaquin_Valley",
+                "NAA_Ventura_Co", "NAA_East_Kern",
+                "EdwardsCAPandora", "NAA_LA-South_Coast",
+                "NAA_LA-Desert", "NAA_Pechanga",
+                "NAA_San_Diego", "NAA_Morongo",
+                "NAA_Coachella_Valley", "NAA_Imperial_Co"
+            ]
+        },
+        {
+            "label": "IMW",
+            "lockeys": [
+                "NAA_Las_Vegas", "NAA_Yuma",
+                "NAA_Phoenix", "SouthJordanUTPandora",
+                "NAA_Salt_Lake", "SaltLakeCityUT-HawthornePandora",
+                "NAA_Provo", "SaltLakeCityUTPandora",
+                "NAA_Uinta_Basin",
+                "BoulderCOPandora", "BoulderCO-NCARPandora",
+                "NAA_Denver"
+            ]
+        },
+        {
+            "label": "MX/TX",
+            "lockeys": [
+                "MexicoCity-UNAMPandora", "MexicoCity-VallejoPandora",
+                "NAA_El_Paso", "NAA_San_Antonio", "ArlingtonTXPandora",
+                "NAA_Dallas", "HoustonTXPandora",
+                "AldineTXPandora", "NAA_Houston"
+            ]
+        },
+        {
+            "label": "East",
+            "lockeys": [
+                "NAA_St_Louis", "HuntsvilleALPandora", "NAA_Louisville",
+                "NAA_Atlanta", "AtlantaGAPandora",
+                "AtlantaGA-SouthDeKalbPandora"
+            ]
+        },
+        {
+            "label": "Great Lakes",
+            "lockeys": [
+                "NAA_Milwaukee", "NAA_Chicago",
+                "NAA_Sheboygan", "NAA_Manitowoc_Co",
+                "NAA_Door_Co_Revised", "NAA_Benton_Harbor",
+                "NAA_Muskegon", "NAA_Allegan_Co",
+                "NAA_Cincinnati", "NAA_Detroit",
+                "DearbornMIPandora", "SWDetroitMIPandora",
+                "Windsor-WestPandora", "NAA_Columbus",
+                "NAA_Cleveland", "DownsviewPandora",
+                "Toronto-ScarboroughPandora"
+            ]
+        },
+        {
+            "label": "Atlantic",
+            "lockeys": [
+                "PittsburghPAPandora", "ChapelHillNCPandora",
+                "CharlesCityVAPandora", "NAA_Washington",
+                "WashingtonDCPandora", "BeltsvilleMDPandora",
+                "GreenbeltMDPandora", "NAA_Baltimore",
+                "HamptonVA-HUPandora", "NAA_Philadelphia",
+                "PhiladelphiaPAPandora", "BristolPAPandora"
+            ]
+        },
+        {
+            "label": "NJ-NY-CT",
+            "lockeys": [
+                "NewBrunswickNJPandora", "BayonneNJPandora",
+                "ManhattanNY-CCNYPandora", "BronxNYPandora",
+                "QueensNYPandora", "NAA_New_York",
+                "WestportCTPandora", "CornwallCTPandora",
+                "OldFieldNYPandora", "NewHavenCTPandora",
+                "NAA_Connecticut", "MadisonCTPandora"
+            ]
+        },
+        {
+            "label": "NE",
+            "lockeys": [
+                "LondonderryNHPandora", "EastProvidenceRIPandora",
+                "CapeElizabethMEPandora"
+            ]
+        }
+    ],
+    "locations": {
+        "NAA_Allegan_Co": {
+            "bbox": [ -86.27, 42.42, -85.89, 42.77 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Allegan Co",
+            "labelxy": [ -85.89, 42.77, "left", "bottom", "#ff7f0e" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Allegan Co NAA at approximately -86.08E 42.595W. Analysis includes all pixels within the bounding box -86.27E, 42.42N, -85.89E, 42.77N."
+        },
+        "NAA_Amador_Co": {
+            "bbox": [ -121.03, 38.22, -120.07, 38.71 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Amador Co",
+            "labelxy": [ -120.07, 38.71, "left", "bottom", "#7f7f7f" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Amador Co NAA at approximately -120.55E 38.465W. Analysis includes all pixels within the bounding box -121.03E, 38.22N, -120.07E, 38.71N."
+        },
+        "NAA_Atlanta": {
+            "bbox": [ -85.05, 33.3, -83.8, 34.41 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Atlanta",
+            "labelxy": [ -83.8, 34.41, "left", "bottom", "#d62728" ],
+            "pandora_hcho": false,
+            "region": "East",
+            "description": "Atlanta NAA at approximately -84.425E 33.855W. Analysis includes all pixels within the bounding box -85.05E, 33.3N, -83.8E, 34.41N."
+        },
+        "NAA_Baltimore": {
+            "bbox": [ -77.31, 38.71, -76.06, 39.72 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Baltimore",
+            "labelxy": [ -77.31, 39.72, "right", "bottom", "#17becf" ],
+            "pandora_hcho": false,
+            "region": "Atlantic",
+            "description": "Baltimore NAA at approximately -76.685E 39.215W. Analysis includes all pixels within the bounding box -77.31E, 38.71N, -76.06E, 39.72N."
+        },
+        "NAA_Benton_Harbor": {
+            "bbox": [ -86.82, 41.76, -86.22, 42.24 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Benton Harbor",
+            "labelxy": [ -86.22, 41.76, "left", "top", "#17becf" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Benton Harbor NAA at approximately -86.52E 42.0W. Analysis includes all pixels within the bounding box -86.82E, 41.76N, -86.22E, 42.24N."
+        },
+        "NAA_Calaveras_Co": {
+            "bbox": [ -121.0, 37.83, -120.02, 38.51 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Calaveras Co",
+            "labelxy": [ -121.0, 37.83, "right", "top", "#bcbd22" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Calaveras Co NAA at approximately -120.51E 38.17W. Analysis includes all pixels within the bounding box -121.0E, 37.83N, -120.02E, 38.51N."
+        },
+        "NAA_Chicago": {
+            "bbox": [ -88.71, 41.2, -86.93, 42.67 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Chicago",
+            "labelxy": [ -88.71, 41.2, "right", "top", "#d62728" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Chicago NAA at approximately -87.82E 41.935W. Analysis includes all pixels within the bounding box -88.71E, 41.2N, -86.93E, 42.67N."
+        },
+        "NAA_Chico": {
+            "bbox": [ -122.07, 39.29, -121.08, 40.15 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Chico",
+            "labelxy": [ -121.08, 40.15, "left", "bottom", "#d62728" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Chico NAA at approximately -121.575E 39.72W. Analysis includes all pixels within the bounding box -122.07E, 39.29N, -121.08E, 40.15N."
+        },
+        "NAA_Cincinnati": {
+            "bbox": [ -84.9, 38.77, -83.98, 39.59 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Cincinnati",
+            "labelxy": [ -84.9, 39.59, "right", "bottom", "#9467bd" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Cincinnati NAA at approximately -84.44E 39.18W. Analysis includes all pixels within the bounding box -84.9E, 38.77N, -83.98E, 39.59N."
+        },
+        "NAA_Cleveland": {
+            "bbox": [ -82.35, 40.91, -81.0, 41.85 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Cleveland",
+            "labelxy": [ -81.0, 41.4, "left", "center", "#7f7f7f" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Cleveland NAA at approximately -81.675E 41.38W. Analysis includes all pixels within the bounding box -82.35E, 40.91N, -81.0E, 41.85N."
+        },
+        "NAA_Coachella_Valley": {
+            "bbox": [ -116.72, 33.43, -115.24, 34.03 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Coachella Val",
+            "labelxy": [ -116.72, 33.43, "right", "top", "#17becf" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Coachella Val NAA at approximately -115.98E 33.73W. Analysis includes all pixels within the bounding box -116.72E, 33.43N, -115.24E, 34.03N."
+        },
+        "NAA_Columbus": {
+            "bbox": [ -83.26, 39.55, -82.18, 40.44 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Columbus",
+            "labelxy": [ -82.18, 39.55, "left", "top", "#e377c2" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Columbus NAA at approximately -82.72E 39.995W. Analysis includes all pixels within the bounding box -83.26E, 39.55N, -82.18E, 40.44N."
+        },
+        "NAA_Connecticut": {
+            "bbox": [ -73.52, 41.28, -71.79, 42.05 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Connecticut",
+            "labelxy": [ -71.79, 42.05, "left", "bottom", "#2ca02c" ],
+            "pandora_hcho": false,
+            "region": "NJ-NY-CT",
+            "description": "Connecticut NAA at approximately -72.655E 41.665W. Analysis includes all pixels within the bounding box -73.52E, 41.28N, -71.79E, 42.05N."
+        },
+        "NAA_Dallas": {
+            "bbox": [ -98.07, 32.05, -96.08, 33.43 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Dallas",
+            "labelxy": [ -96.08, 33.43, "left", "bottom", "#1f77b4" ],
+            "pandora_hcho": false,
+            "region": "MX/TX",
+            "description": "Dallas NAA at approximately -97.075E 32.74W. Analysis includes all pixels within the bounding box -98.07E, 32.05N, -96.08E, 33.43N."
+        },
+        "NAA_Denver": {
+            "bbox": [ -105.9, 39.12, -103.56, 41.0 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Denver",
+            "labelxy": [ -105.9, 39.12, "right", "top", "#bcbd22" ],
+            "pandora_hcho": false,
+            "region": "IMW",
+            "description": "Denver NAA at approximately -104.73E 40.06W. Analysis includes all pixels within the bounding box -105.9E, 39.12N, -103.56E, 41.0N."
+        },
+        "NAA_Detroit": {
+            "bbox": [ -84.16, 41.72, -82.42, 43.17 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Detroit",
+            "labelxy": [ -82.42, 43.17, "left", "bottom", "#8c564b" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Detroit NAA at approximately -83.29E 42.445W. Analysis includes all pixels within the bounding box -84.16E, 41.72N, -82.42E, 43.17N."
+        },
+        "NAA_Door_Co_Revised": {
+            "bbox": [ -87.41, 44.79, -86.81, 45.43 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Door Co (Rev)",
+            "labelxy": [ -87.41, 44.79, "right", "top", "#7f7f7f" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Door Co (Rev) NAA at approximately -87.11E 45.11W. Analysis includes all pixels within the bounding box -87.41E, 44.79N, -86.81E, 45.43N."
+        },
+        "NAA_East_Kern": {
+            "bbox": [ -118.8, 34.82, -117.63, 35.79 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "East Kern",
+            "labelxy": [ -117.63, 35.79, "left", "bottom", "#8c564b" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "East Kern NAA at approximately -118.215E 35.305W. Analysis includes all pixels within the bounding box -118.8E, 34.82N, -117.63E, 35.79N."
+        },
+        "NAA_El_Paso": {
+            "bbox": [ -106.7, 31.39, -105.95, 32.0 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "El Paso",
+            "labelxy": [ -105.95, 32.0, "left", "bottom", "#7f7f7f" ],
+            "pandora_hcho": false,
+            "region": "MX/TX",
+            "description": "El Paso NAA at approximately -106.325E 31.695W. Analysis includes all pixels within the bounding box -106.7E, 31.39N, -105.95E, 32.0N."
+        },
+        "NAA_Houston": {
+            "bbox": [ -96.09, 28.83, -94.35, 30.63 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Houston",
+            "labelxy": [ -94.35, 28.83, "left", "top", "#ff7f0e" ],
+            "pandora_hcho": false,
+            "region": "MX/TX",
+            "description": "Houston NAA at approximately -95.22E 29.73W. Analysis includes all pixels within the bounding box -96.09E, 28.83N, -94.35E, 30.63N."
+        },
+        "NAA_Imperial_Co": {
+            "bbox": [ -116.11, 32.62, -114.46, 33.43 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Imperial Co",
+            "labelxy": [ -114.46, 33.43, "left", "bottom", "#1f77b4" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Imperial Co NAA at approximately -115.285E 33.025W. Analysis includes all pixels within the bounding box -116.11E, 32.62N, -114.46E, 33.43N."
+        },
+        "NAA_LA-Desert": {
+            "bbox": [ -118.8, 34.03, -115.75, 35.17 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "LA-Desert",
+            "labelxy": [ -118.8, 34.03, "right", "top", "#9467bd" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "LA-Desert NAA at approximately -117.275E 34.6W. Analysis includes all pixels within the bounding box -118.8E, 34.03N, -115.75E, 35.17N."
+        },
+        "NAA_LA-South_Coast": {
+            "bbox": [ -118.94, 32.8, -116.52, 34.82 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "LA-S.Coast",
+            "labelxy": [ -118.94, 32.8, "right", "top", "#d62728" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "LA-S.Coast NAA at approximately -117.73E 33.81W. Analysis includes all pixels within the bounding box -118.94E, 32.8N, -116.52E, 34.82N."
+        },
+        "NAA_Las_Vegas": {
+            "bbox": [ -115.71, 35.83, -114.85, 36.67 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Las Vegas",
+            "labelxy": [ -114.85, 36.67, "left", "bottom", "#ff7f0e" ],
+            "pandora_hcho": false,
+            "region": "IMW",
+            "description": "Las Vegas NAA at approximately -115.28E 36.25W. Analysis includes all pixels within the bounding box -115.71E, 35.83N, -114.85E, 36.67N."
+        },
+        "NAA_Louisville": {
+            "bbox": [ -86.03, 37.81, -85.28, 38.61 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Louisville",
+            "labelxy": [ -86.03, 37.81, "right", "top", "#2ca02c" ],
+            "pandora_hcho": false,
+            "region": "East",
+            "description": "Louisville NAA at approximately -85.655E 38.21W. Analysis includes all pixels within the bounding box -86.03E, 37.81N, -85.28E, 38.61N."
+        },
+        "NAA_Manitowoc_Co": {
+            "bbox": [ -87.83, 43.89, -87.51, 44.33 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Manitowoc Co",
+            "labelxy": [ -87.83, 44.33, "right", "bottom", "#e377c2" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Manitowoc Co NAA at approximately -87.67E 44.11W. Analysis includes all pixels within the bounding box -87.83E, 43.89N, -87.51E, 44.33N."
+        },
+        "NAA_Mariposa_Co": {
+            "bbox": [ -120.39, 37.18, -119.31, 37.9 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Mariposa Co",
+            "labelxy": [ -120.39, 37.18, "right", "top", "#ff7f0e" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Mariposa Co NAA at approximately -119.85E 37.54W. Analysis includes all pixels within the bounding box -120.39E, 37.18N, -119.31E, 37.9N."
+        },
+        "NAA_Milwaukee": {
+            "bbox": [ -88.54, 42.67, -87.76, 43.54 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Milwaukee",
+            "labelxy": [ -88.54, 43.54, "right", "bottom", "#9467bd" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Milwaukee NAA at approximately -88.15E 43.105W. Analysis includes all pixels within the bounding box -88.54E, 42.67N, -87.76E, 43.54N."
+        },
+        "NAA_Morongo": {
+            "bbox": [ -116.92, 33.86, -116.72, 34.02 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Morongo",
+            "labelxy": [ -116.72, 34.02, "left", "bottom", "#bcbd22" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Morongo NAA at approximately -116.82E 33.94W. Analysis includes all pixels within the bounding box -116.92E, 33.86N, -116.72E, 34.02N."
+        },
+        "NAA_Muskegon": {
+            "bbox": [ -86.46, 43.12, -86.07, 43.47 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Muskegon",
+            "labelxy": [ -86.07, 43.47, "left", "bottom", "#1f77b4" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Muskegon NAA at approximately -86.265E 43.295W. Analysis includes all pixels within the bounding box -86.46E, 43.12N, -86.07E, 43.47N."
+        },
+        "NAA_Nevada_Co": {
+            "bbox": [ -121.28, 39.01, -120.36, 39.53 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Nevada Co",
+            "labelxy": [ -120.36, 39.53, "left", "bottom", "#e377c2" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Nevada Co NAA at approximately -120.82E 39.27W. Analysis includes all pixels within the bounding box -121.28E, 39.01N, -120.36E, 39.53N."
+        },
+        "NAA_New_York": {
+            "bbox": [ -75.2, 40.08, -71.86, 41.67 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "New York",
+            "labelxy": [ -71.86, 40.08, "left", "top", "#ff7f0e" ],
+            "pandora_hcho": false,
+            "region": "NJ-NY-CT",
+            "description": "New York NAA at approximately -73.53E 40.875W. Analysis includes all pixels within the bounding box -75.2E, 40.08N, -71.86E, 41.67N."
+        },
+        "NAA_Pechanga": {
+            "bbox": [ -117.28, 33.43, -117.03, 33.72 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Pechanga",
+            "labelxy": [ -117.28, 33.43, "right", "top", "#7f7f7f" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Pechanga NAA at approximately -117.155E 33.575W. Analysis includes all pixels within the bounding box -117.28E, 33.43N, -117.03E, 33.72N."
+        },
+        "NAA_Philadelphia": {
+            "bbox": [ -76.23, 38.93, -74.03, 40.61 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Philadelphia",
+            "labelxy": [ -74.03, 38.93, "left", "top", "#1f77b4" ],
+            "pandora_hcho": false,
+            "region": "Atlantic",
+            "description": "Philadelphia NAA at approximately -75.13E 39.77W. Analysis includes all pixels within the bounding box -76.23E, 38.93N, -74.03E, 40.61N."
+        },
+        "NAA_Phoenix": {
+            "bbox": [ -113.13, 32.94, -111.04, 34.05 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Phoenix",
+            "labelxy": [ -111.04, 34.05, "left", "bottom", "#d62728" ],
+            "pandora_hcho": false,
+            "region": "IMW",
+            "description": "Phoenix NAA at approximately -112.085E 33.495W. Analysis includes all pixels within the bounding box -113.13E, 32.94N, -111.04E, 34.05N."
+        },
+        "NAA_Provo": {
+            "bbox": [ -112.21, 39.78, -111.53, 40.52 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Provo",
+            "labelxy": [ -112.21, 39.78, "right", "top", "#8c564b" ],
+            "pandora_hcho": false,
+            "region": "IMW",
+            "description": "Provo NAA at approximately -111.87E 40.15W. Analysis includes all pixels within the bounding box -112.21E, 39.78N, -111.53E, 40.52N."
+        },
+        "NAA_Sacramento": {
+            "bbox": [ -122.42, 38.02, -120.01, 39.32 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Sacramento",
+            "labelxy": [ -120.01, 39.32, "left", "bottom", "#ff7f0e" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Sacramento NAA at approximately -121.215E 38.67W. Analysis includes all pixels within the bounding box -122.42E, 38.02N, -120.01E, 39.32N."
+        },
+        "NAA_Salt_Lake": {
+            "bbox": [ -112.69, 40.41, -111.55, 41.36 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Salt Lake",
+            "labelxy": [ -112.69, 41.36, "right", "bottom", "#9467bd" ],
+            "pandora_hcho": false,
+            "region": "IMW",
+            "description": "Salt Lake NAA at approximately -112.12E 40.885W. Analysis includes all pixels within the bounding box -112.69E, 40.41N, -111.55E, 41.36N."
+        },
+        "NAA_San_Antonio": {
+            "bbox": [ -98.81, 29.11, -98.12, 29.76 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "San Antonio",
+            "labelxy": [ -98.81, 29.76, "right", "bottom", "#17becf" ],
+            "pandora_hcho": false,
+            "region": "MX/TX",
+            "description": "San Antonio NAA at approximately -98.465E 29.435W. Analysis includes all pixels within the bounding box -98.81E, 29.11N, -98.12E, 29.76N."
+        },
+        "NAA_San_Diego": {
+            "bbox": [ -117.6, 32.53, -116.08, 33.51 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "San Diego",
+            "labelxy": [ -116.08, 33.51, "left", "bottom", "#e377c2" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "San Diego NAA at approximately -116.84E 33.02W. Analysis includes all pixels within the bounding box -117.6E, 32.53N, -116.08E, 33.51N."
+        },
+        "NAA_San_Francisco": {
+            "bbox": [ -123.02, 36.89, -121.21, 38.86 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "San_Francisco",
+            "labelxy": [ -123.02, 36.89, "right", "top", "#1f77b4" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "San_Francisco NAA at approximately -122.115E 37.875W. Analysis includes all pixels within the bounding box -123.02E, 36.89N, -121.21E, 38.86N."
+        },
+        "NAA_San_Joaquin_Valley": {
+            "bbox": [ -121.59, 34.79, -117.98, 38.3 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "San Joaquin Val",
+            "labelxy": [ -121.59, 34.79, "right", "top", "#8c564b" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "San Joaquin Val NAA at approximately -119.785E 36.545W. Analysis includes all pixels within the bounding box -121.59E, 34.79N, -117.98E, 38.3N."
+        },
+        "NAA_San_Luis_Obispo": {
+            "bbox": [ -120.4, 34.9, -119.47, 35.79 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "San Luis Obispo",
+            "labelxy": [ -119.47, 35.79, "left", "bottom", "#1f77b4" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "San Luis Obispo NAA at approximately -119.935E 35.345W. Analysis includes all pixels within the bounding box -120.4E, 34.9N, -119.47E, 35.79N."
+        },
+        "NAA_Sheboygan": {
+            "bbox": [ -87.86, 43.54, -87.7, 43.89 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Sheboygan",
+            "labelxy": [ -87.7, 43.54, "left", "top", "#8c564b" ],
+            "pandora_hcho": false,
+            "region": "Great Lakes",
+            "description": "Sheboygan NAA at approximately -87.78E 43.715W. Analysis includes all pixels within the bounding box -87.86E, 43.54N, -87.7E, 43.89N."
+        },
+        "NAA_St_Louis": {
+            "bbox": [ -90.96, 38.0, -89.6, 39.0 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "StLouis",
+            "labelxy": [ -90.96, 38.0, "right", "top", "#2ca02c" ],
+            "pandora_hcho": false,
+            "region": "East",
+            "description": "StLouis NAA at approximately -90.28E 38.5W. Analysis includes all pixels within the bounding box -90.96E, 38.0N, -89.6E, 39.0N."
+        },
+        "NAA_Sutter_Buttes": {
+            "bbox": [ -121.83, 39.19, -121.81, 39.21 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Sutter Buttes",
+            "labelxy": [ -121.83, 39.19, "right", "top", "#9467bd" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Sutter Buttes NAA at approximately -121.82E 39.2W. Analysis includes all pixels within the bounding box -121.83E, 39.19N, -121.81E, 39.21N."
+        },
+        "NAA_Tuolumne_Co": {
+            "bbox": [ -120.65, 37.63, -119.19, 38.43 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Tuolumne Co",
+            "labelxy": [ -119.19, 38.43, "left", "bottom", "#17becf" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Tuolumne Co NAA at approximately -119.92E 38.03W. Analysis includes all pixels within the bounding box -120.65E, 37.63N, -119.19E, 38.43N."
+        },
+        "NAA_Uinta_Basin": {
+            "bbox": [ -110.81, 39.46, -109.05, 40.64 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Uinta Basin",
+            "labelxy": [ -109.05, 40.64, "left", "bottom", "#e377c2" ],
+            "pandora_hcho": false,
+            "region": "IMW",
+            "description": "Uinta Basin NAA at approximately -109.93E 40.05W. Analysis includes all pixels within the bounding box -110.81E, 39.46N, -109.05E, 40.64N."
+        },
+        "NAA_Ventura_Co": {
+            "bbox": [ -119.48, 34.05, -118.63, 34.9 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Ventura Co",
+            "labelxy": [ -119.48, 34.05, "right", "top", "#2ca02c" ],
+            "pandora_hcho": false,
+            "region": "CA",
+            "description": "Ventura Co NAA at approximately -119.055E 34.475W. Analysis includes all pixels within the bounding box -119.48E, 34.05N, -118.63E, 34.9N."
+        },
+        "NAA_Washington": {
+            "bbox": [ -77.96, 38.26, -76.38, 39.72 ],
+            "airnow": true, "pandora": false, "tropomi": true,
+            "label": "Washington",
+            "labelxy": [ -77.96, 38.26, "right", "top", "#bcbd22" ],
+            "pandora_hcho": false,
+            "region": "Atlantic",
+            "description": "Washington NAA at approximately -77.17E 38.99W. Analysis includes all pixels within the bounding box -77.96E, 38.26N, -76.38E, 39.72N."
+        },
+        "NAA_Yuma": {
+            "bbox": [ -114.76, 32.66, -114.56, 32.75 ],
+            "airnow": false, "pandora": false, "tropomi": true,
+            "label": "Yuma",
+            "labelxy": [ -114.56, 32.66, "left", "top", "#2ca02c" ],
+            "pandora_hcho": false,
+            "region": "IMW",
+            "description": "Yuma NAA at approximately -114.66E 32.705W. Analysis includes all pixels within the bounding box -114.76E, 32.66N, -114.56E, 32.75N."
+        },
+        "RichmondCAPandora": {
+            "bbox": [ -122.436, 37.813, -122.236, 38.013 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 52,
+            "label": "RichmondCA",
+            "labelxy": [ -122.436, 37.813, "right", "top", "#1f77b4", "s" ],
+            "region": "CA",
+            "description": "RichmondCA PGN station at approximately -122.336E 37.913W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -122.436E, 37.813N, -122.236E, 38.013N for TropOMI comparisons."
+        },
+        "MountainViewCAPandora": {
+            "bbox": [ -122.1568, 37.32, -121.9568, 37.52 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 34,
+            "label": "MountainViewCA",
+            "labelxy": [ -122.1568, 37.32, "right", "top", "#ff7f0e", "o" ],
+            "region": "CA",
+            "description": "MountainViewCA PGN station at approximately -122.0568E 37.42W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -122.1568E, 37.32N, -121.9568E, 37.52N for TropOMI comparisons."
+        },
+        "SanJoseCAPandora": {
+            "bbox": [ -121.9821, 37.2325, -121.7821, 37.4325 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 181,
+            "label": "SanJoseCA",
+            "labelxy": [ -121.7821, 37.4325, "left", "bottom", "#2ca02c", "*" ],
+            "region": "CA",
+            "description": "SanJoseCA PGN station at approximately -121.8821E 37.3325W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -121.9821E, 37.2325N, -121.7821E, 37.4325N for TropOMI comparisons."
+        },
+        "EdwardsCAPandora": {
+            "bbox": [ -117.9811, 34.86, -117.7811, 35.06 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 74,
+            "label": "EdwardsCA",
+            "labelxy": [ -117.9811, 34.86, "right", "top", "#d62728", "p" ],
+            "region": "CA",
+            "description": "EdwardsCA PGN station at approximately -117.8811E 34.96W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -117.9811E, 34.86N, -117.7811E, 35.06N for TropOMI comparisons."
+        },
+        "SouthJordanUTPandora": {
+            "bbox": [ -112.17, 40.448, -111.97, 40.648 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 139,
+            "label": "SouthJordanUT",
+            "labelxy": [ -111.97, 40.648, "left", "bottom", "#9467bd", "D" ],
+            "region": "IMW",
+            "description": "SouthJordanUT PGN station at approximately -112.07E 40.548W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -112.17E, 40.448N, -111.97E, 40.648N for TropOMI comparisons."
+        },
+        "SaltLakeCityUT-HawthornePandora": {
+            "bbox": [ -111.9722, 40.6344, -111.7722, 40.8344 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 72,
+            "label": "SLC-Hawthorne",
+            "labelxy": [ -111.9722, 40.6344, "right", "top", "#8c564b", "v" ],
+            "region": "IMW",
+            "description": "SLC-Hawthorne PGN station at approximately -111.8722E 40.7344W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -111.9722E, 40.6344N, -111.7722E, 40.8344N for TropOMI comparisons."
+        },
+        "SaltLakeCityUTPandora": {
+            "bbox": [ -111.9478, 40.6663, -111.7478, 40.8663 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 154,
+            "label": "SLC-UT",
+            "labelxy": [ -111.7478, 40.8663, "left", "bottom", "#e377c2", "^" ],
+            "region": "IMW",
+            "description": "SLC-UT PGN station at approximately -111.8478E 40.7663W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -111.9478E, 40.6663N, -111.7478E, 40.8663N for TropOMI comparisons."
+        },
+        "BoulderCOPandora": {
+            "bbox": [ -105.36, 39.89, -105.16, 40.09 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 57,
+            "label": "BoulderCO",
+            "labelxy": [ -105.16, 40.09, "left", "bottom", "#7f7f7f", "o" ],
+            "region": "IMW",
+            "description": "BoulderCO PGN station at approximately -105.26E 39.99W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -105.36E, 39.89N, -105.16E, 40.09N for TropOMI comparisons."
+        },
+        "BoulderCO-NCARPandora": {
+            "bbox": [ -105.342, 39.9375, -105.142, 40.1375 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 204,
+            "label": "BoulderCO-NCAR",
+            "labelxy": [ -105.342, 39.9375, "right", "top", "#bcbd22", "*" ],
+            "region": "IMW",
+            "description": "BoulderCO-NCAR PGN station at approximately -105.242E 40.0375W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -105.342E, 39.9375N, -105.142E, 40.1375N for TropOMI comparisons."
+        },
+        "MexicoCity-UNAMPandora": {
+            "bbox": [ -99.2761, 19.2262, -99.0761, 19.4262 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 142,
+            "label": "MexicoCity-UNAM",
+            "labelxy": [ -99.0761, 19.4262, "left", "bottom", "#17becf", "p" ],
+            "region": "MX/TX",
+            "description": "MexicoCity-UNAM PGN station at approximately -99.1761E 19.3262W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -99.2761E, 19.2262N, -99.0761E, 19.4262N for TropOMI comparisons."
+        },
+        "MexicoCity-VallejoPandora": {
+            "bbox": [ -99.247, 19.383, -99.047, 19.583 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 157,
+            "label": "MexicoCity-Vallejo",
+            "labelxy": [ -99.247, 19.383, "right", "top", "#1f77b4", "D" ],
+            "region": "MX/TX",
+            "description": "MexicoCity-Vallejo PGN station at approximately -99.147E 19.483W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -99.247E, 19.383N, -99.047E, 19.583N for TropOMI comparisons."
+        },
+        "ArlingtonTXPandora": {
+            "bbox": [ -97.2142, 32.6316, -97.0142, 32.8316 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 207,
+            "label": "ArlingtonTX",
+            "labelxy": [ -97.0142, 32.8316, "left", "bottom", "#ff7f0e", "s" ],
+            "region": "MX/TX",
+            "description": "ArlingtonTX PGN station at approximately -97.1142E 32.7316W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -97.2142E, 32.6316N, -97.0142E, 32.8316N for TropOMI comparisons."
+        },
+        "HoustonTXPandora": {
+            "bbox": [ -95.44, 29.62, -95.24, 29.82 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 25,
+            "label": "HoustonTX",
+            "labelxy": [ -95.24, 29.82, "left", "bottom", "#2ca02c", "o" ],
+            "region": "MX/TX",
+            "description": "HoustonTX PGN station at approximately -95.34E 29.72W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -95.44E, 29.62N, -95.24E, 29.82N for TropOMI comparisons."
+        },
+        "AldineTXPandora": {
+            "bbox": [ -95.4262, 29.8011, -95.2262, 30.0011 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 61,
+            "label": "AldineTX",
+            "labelxy": [ -95.4262, 29.8011, "right", "top", "#d62728", "*" ],
+            "region": "MX/TX",
+            "description": "AldineTX PGN station at approximately -95.3262E 29.9011W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -95.4262E, 29.8011N, -95.2262E, 30.0011N for TropOMI comparisons."
+        },
+        "HuntsvilleALPandora": {
+            "bbox": [ -86.7464, 34.6252, -86.5464, 34.8252 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 66,
+            "label": "HuntsvilleAL",
+            "labelxy": [ -86.5464, 34.8252, "left", "bottom", "#9467bd", "D" ],
+            "region": "East",
+            "description": "HuntsvilleAL PGN station at approximately -86.6464E 34.7252W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -86.7464E, 34.6252N, -86.5464E, 34.8252N for TropOMI comparisons."
+        },
+        "AtlantaGAPandora": {
+            "bbox": [ -84.4958, 33.679, -84.2958, 33.879 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 173,
+            "label": "AtlantaGA",
+            "note": "33.779 -84.3958",
+            "labelxy": [ -84.2958, 33.879, "left", "bottom", "#8c564b", "p" ],
+            "region": "East",
+            "description": "AtlantaGA PGN station at approximately -84.3958E 33.779W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -84.4958E, 33.679N, -84.2958E, 33.879N for TropOMI comparisons."
+        },
+        "AtlantaGA-SouthDeKalbPandora": {
+            "bbox": [ -84.4958, 33.679, -84.2958, 33.879 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 237,
+            "label": "Atl-S.DeKalb",
+            "note": "33.779 -84.3958",
+            "labelxy": [ -84.4958, 33.679, "right", "top", "#e377c2", "s" ],
+            "region": "East",
+            "description": "Atl-S.DeKalb PGN station at approximately -84.3958E 33.779W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -84.4958E, 33.679N, -84.2958E, 33.879N for TropOMI comparisons."
+        },
+        "DearbornMIPandora": {
+            "bbox": [ -83.2488, 42.2067, -83.0488, 42.4067 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 39,
+            "label": "DearbornMI",
+            "labelxy": [ -83.0488, 42.4067, "left", "bottom", "#7f7f7f", "o" ],
+            "region": "Great Lakes",
+            "description": "DearbornMI PGN station at approximately -83.1488E 42.3067W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -83.2488E, 42.2067N, -83.0488E, 42.4067N for TropOMI comparisons."
+        },
+        "SWDetroitMIPandora": {
+            "bbox": [ -83.2068, 42.2026, -83.0068, 42.4026 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 147,
+            "label": "SWDetroitMI",
+            "labelxy": [ -83.2068, 42.2026, "right", "top", "#bcbd22", "*" ],
+            "region": "Great Lakes",
+            "description": "SWDetroitMI PGN station at approximately -83.1068E 42.3026W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -83.2068E, 42.2026N, -83.0068E, 42.4026N for TropOMI comparisons."
+        },
+        "Windsor-WestPandora": {
+            "bbox": [ -83.1731, 42.1929, -82.9731, 42.3929 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 208,
+            "label": "Windsor-West",
+            "labelxy": [ -82.9731, 42.3929, "left", "bottom", "#17becf", "p" ],
+            "region": "Great Lakes",
+            "description": "Windsor-West PGN station at approximately -83.0731E 42.2929W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -83.1731E, 42.1929N, -82.9731E, 42.3929N for TropOMI comparisons."
+        },
+        "PittsburghPAPandora": {
+            "bbox": [ -80.0608, 40.3655, -79.8608, 40.5655 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 187,
+            "label": "PittsburghPA",
+            "labelxy": [ -79.8608, 40.5655, "left", "bottom", "#1f77b4", "D" ],
+            "region": "Atlantic",
+            "description": "PittsburghPA PGN station at approximately -79.9608E 40.4655W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -80.0608E, 40.3655N, -79.8608E, 40.5655N for TropOMI comparisons."
+        },
+        "DownsviewPandora": {
+            "bbox": [ -79.568, 43.681, -79.368, 43.881 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 104,
+            "label": "Downsview",
+            "labelxy": [ -79.568, 43.681, "right", "top", "#ff7f0e", "s" ],
+            "region": "Great Lakes",
+            "description": "Downsview PGN station at approximately -79.468E 43.781W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -79.568E, 43.681N, -79.368E, 43.881N for TropOMI comparisons."
+        },
+        "Toronto-ScarboroughPandora": {
+            "bbox": [ -79.2874, 43.6843, -79.0874, 43.8843 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 145,
+            "label": "Toronto-Scar",
+            "labelxy": [ -79.0874, 43.8843, "left", "bottom", "#2ca02c", "o" ],
+            "region": "Great Lakes",
+            "description": "Toronto-Scar PGN station at approximately -79.1874E 43.7843W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -79.2874E, 43.6843N, -79.0874E, 43.8843N for TropOMI comparisons."
+        },
+        "ChapelHillNCPandora": {
+            "bbox": [ -79.1933, 35.8708, -78.9933, 36.0708 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 70,
+            "label": "ChapelHillNC",
+            "labelxy": [ -79.1933, 35.8708, "right", "top", "#d62728", "*" ],
+            "region": "Atlantic",
+            "description": "ChapelHillNC PGN station at approximately -79.0933E 35.9708W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -79.1933E, 35.8708N, -78.9933E, 36.0708N for TropOMI comparisons."
+        },
+        "CharlesCityVAPandora": {
+            "bbox": [ -77.3057, 37.226, -77.1057, 37.426 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 31,
+            "label": "CharlesCityVA",
+            "labelxy": [ -77.1057, 37.426, "left", "bottom", "#9467bd", "p" ],
+            "region": "Atlantic",
+            "description": "CharlesCityVA PGN station at approximately -77.2057E 37.326W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -77.3057E, 37.226N, -77.1057E, 37.426N for TropOMI comparisons."
+        },
+        "WashingtonDCPandora": {
+            "bbox": [ -77.1124, 38.8218, -76.9124, 39.0218 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 140,
+            "label": "WashingtonDC",
+            "labelxy": [ -77.1124, 38.8218, "right", "top", "#8c564b", "D" ],
+            "region": "Atlantic",
+            "description": "WashingtonDC PGN station at approximately -77.0124E 38.9218W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -77.1124E, 38.8218N, -76.9124E, 39.0218N for TropOMI comparisons."
+        },
+        "BeltsvilleMDPandora": {
+            "bbox": [ -76.9783, 38.9553, -76.7783, 39.1553 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 80,
+            "label": "BeltsvilleMD",
+            "labelxy": [ -76.8783, 39.1553, "center", "bottom", "#e377c2", "s" ],
+            "region": "Atlantic",
+            "description": "BeltsvilleMD PGN station at approximately -76.8783E 39.0553W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -76.9783E, 38.9553N, -76.7783E, 39.1553N for TropOMI comparisons."
+        },
+        "GreenbeltMDPandora": {
+            "bbox": [ -76.9396, 38.8926, -76.7396, 39.0926 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 32,
+            "label": "GreenbeltMD",
+            "labelxy": [ -76.7396, 38.9926, "left", "center", "#7f7f7f", "o" ],
+            "region": "Atlantic",
+            "description": "GreenbeltMD PGN station at approximately -76.8396E 38.9926W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -76.9396E, 38.8926N, -76.7396E, 39.0926N for TropOMI comparisons."
+        },
+        "HamptonVA-HUPandora": {
+            "bbox": [ -76.4366, 36.9203, -76.2366, 37.1203 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 156,
+            "label": "HamptonVA-HU",
+            "labelxy": [ -76.2366, 37.0203, "left", "center", "#bcbd22", "*" ],
+            "region": "Atlantic",
+            "description": "HamptonVA-HU PGN station at approximately -76.3366E 37.0203W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -76.4366E, 36.9203N, -76.2366E, 37.1203N for TropOMI comparisons."
+        },
+        "PhiladelphiaPAPandora": {
+            "bbox": [ -75.1811, 39.8919, -74.9811, 40.0919 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 166,
+            "label": "PhiladelphiaPA",
+            "labelxy": [ -75.0811, 39.8919, "center", "top", "#17becf", "p" ],
+            "region": "Atlantic",
+            "description": "PhiladelphiaPA PGN station at approximately -75.0811E 39.9919W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -75.1811E, 39.8919N, -74.9811E, 40.0919N for TropOMI comparisons."
+        },
+        "BristolPAPandora": {
+            "bbox": [ -74.9824, 40.0074, -74.7824, 40.2074 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 134,
+            "label": "BristolPA",
+            "labelxy": [ -74.7824, 40.2074, "left", "bottom", "#1f77b4", "D" ],
+            "region": "Atlantic",
+            "description": "BristolPA PGN station at approximately -74.8824E 40.1074W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -74.9824E, 40.0074N, -74.7824E, 40.2074N for TropOMI comparisons."
+        },
+        "NewBrunswickNJPandora": {
+            "bbox": [ -74.5294, 40.3622, -74.3294, 40.5622 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 69,
+            "label": "NewBrunswickNJ",
+            "labelxy": [ -74.5294, 40.3622, "right", "top", "#ff7f0e", "s" ],
+            "region": "NJ-NY-CT",
+            "description": "NewBrunswickNJ PGN station at approximately -74.4294E 40.4622W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -74.5294E, 40.3622N, -74.3294E, 40.5622N for TropOMI comparisons."
+        },
+        "BayonneNJPandora": {
+            "bbox": [ -74.2261, 40.5703, -74.0261, 40.7703 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 38,
+            "label": "BayonneNJ",
+            "labelxy": [ -74.0261, 40.7703, "left", "bottom", "#2ca02c", "o" ],
+            "region": "NJ-NY-CT",
+            "description": "BayonneNJ PGN station at approximately -74.1261E 40.6703W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -74.2261E, 40.5703N, -74.0261E, 40.7703N for TropOMI comparisons."
+        },
+        "ManhattanNY-CCNYPandora": {
+            "bbox": [ -74.0505, 40.7153, -73.8505, 40.9153 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 135,
+            "label": "ManhattanNY-CCNY",
+            "labelxy": [ -74.0505, 40.7153, "right", "top", "#d62728", "*" ],
+            "region": "NJ-NY-CT",
+            "description": "ManhattanNY-CCNY PGN station at approximately -73.9505E 40.8153W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -74.0505E, 40.7153N, -73.8505E, 40.9153N for TropOMI comparisons."
+        },
+        "BronxNYPandora": {
+            "bbox": [ -73.9781, 40.7679, -73.7781, 40.9679 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 180,
+            "label": "BronxNY",
+            "labelxy": [ -73.7781, 40.9679, "left", "bottom", "#9467bd", "p" ],
+            "region": "NJ-NY-CT",
+            "description": "BronxNY PGN station at approximately -73.8781E 40.8679W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -73.9781E, 40.7679N, -73.7781E, 40.9679N for TropOMI comparisons."
+        },
+        "QueensNYPandora": {
+            "bbox": [ -73.9215, 40.6361, -73.7215, 40.8361 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 55,
+            "label": "QueensNY",
+            "labelxy": [ -73.9215, 40.6361, "right", "top", "#8c564b", "D" ],
+            "region": "NJ-NY-CT",
+            "description": "QueensNY PGN station at approximately -73.8215E 40.7361W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -73.9215E, 40.6361N, -73.7215E, 40.8361N for TropOMI comparisons."
+        },
+        "WestportCTPandora": {
+            "bbox": [ -73.4367, 41.0183, -73.2367, 41.2183 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 177,
+            "label": "WestportCT",
+            "notes": "Pandora HCHO correction factor leads to a U shape with negative values.",
+            "labelxy": [ -73.4367, 41.0183, "right", "top", "#e377c2", "s" ],
+            "region": "NJ-NY-CT",
+            "description": "WestportCT PGN station at approximately -73.3367E 41.1183W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -73.4367E, 41.0183N, -73.2367E, 41.2183N for TropOMI comparisons."
+        },
+        "CornwallCTPandora": {
+            "bbox": [ -73.3973, 41.7213, -73.1973, 41.9213 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 179,
+            "label": "CornwallCT",
+            "labelxy": [ -73.3973, 41.9213, "right", "bottom", "#7f7f7f", "o" ],
+            "region": "NJ-NY-CT",
+            "description": "CornwallCT PGN station at approximately -73.2973E 41.8213W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -73.3973E, 41.7213N, -73.1973E, 41.9213N for TropOMI comparisons."
+        },
+        "OldFieldNYPandora": {
+            "bbox": [ -73.2402, 40.8635, -73.0402, 41.0635 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 51,
+            "label": "OldFieldNY",
+            "labelxy": [ -73.2402, 40.8635, "right", "top", "#bcbd22", "*" ],
+            "region": "NJ-NY-CT",
+            "description": "OldFieldNY PGN station at approximately -73.1402E 40.9635W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -73.2402E, 40.8635N, -73.0402E, 41.0635N for TropOMI comparisons."
+        },
+        "NewHavenCTPandora": {
+            "bbox": [ -73.0029, 41.2014, -72.8029, 41.4014 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 64,
+            "label": "NewHavenCT",
+            "labelxy": [ -72.8029, 41.4014, "left", "bottom", "#17becf", "p" ],
+            "region": "NJ-NY-CT",
+            "description": "NewHavenCT PGN station at approximately -72.9029E 41.3014W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -73.0029E, 41.2014N, -72.8029E, 41.4014N for TropOMI comparisons."
+        },
+        "MadisonCTPandora": {
+            "bbox": [ -72.6533, 41.1568, -72.4533, 41.3568 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 186,
+            "label": "MadisonCT",
+            "labelxy": [ -72.4533, 41.1568, "left", "top", "#1f77b4", "D" ],
+            "region": "NJ-NY-CT",
+            "description": "MadisonCT PGN station at approximately -72.5533E 41.2568W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -72.6533E, 41.1568N, -72.4533E, 41.3568N for TropOMI comparisons."
+        },
+        "LondonderryNHPandora": {
+            "bbox": [ -71.4801, 42.7625, -71.2801, 42.9625 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": true, "pandoraid": 183,
+            "label": "LondonderryNH",
+            "notes": "Data looks suspicious -- perhaps an intermittent spectral issue.",
+            "labelxy": [ -71.2801, 42.9625, "left", "bottom", "#ff7f0e", "s" ],
+            "region": "NE",
+            "description": "LondonderryNH PGN station at approximately -71.3801E 42.8625W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -71.4801E, 42.7625N, -71.2801E, 42.9625N for TropOMI comparisons."
+        },
+        "EastProvidenceRIPandora": {
+            "bbox": [ -71.461, 41.741, -71.261, 41.941 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 185,
+            "label": "EastProvidenceRI",
+            "labelxy": [ -71.261, 41.941, "left", "bottom", "#2ca02c", "o" ],
+            "region": "NE",
+            "description": "EastProvidenceRI PGN station at approximately -71.361E 41.841W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -71.461E, 41.741N, -71.261E, 41.941N for TropOMI comparisons."
+        },
+        "CapeElizabethMEPandora": {
+            "bbox": [ -70.3073, 43.461, -70.1073, 43.661 ],
+            "airnow": false, "pandora": true, "tropomi": true,
+            "pandora_hcho": false, "pandoraid": 184,
+            "label": "CapeElizabethME",
+            "labelxy": [ -70.1073, 43.661, "left", "bottom", "#d62728", "*" ],
+            "region": "NE",
+            "description": "CapeElizabethME PGN station at approximately -70.2073E 43.561W. Analysis includes all pixels with 0.03 degrees for Pandora comparisons and within the bounding box -70.3073E, 43.461N, -70.1073E, 43.661N for TropOMI comparisons."
+        }
+    }
+}

@@ -9,8 +9,10 @@ from shapely.ops import prep
 from shapely import box, unary_union
 import pyrsig
 import numpy as np
+import os
 
 rawcfg = json.load(open('config.json', 'r'))
+dataroot = rawcfg.get('dataroot', os.path.realpath('.'))
 server = rawcfg.get('server', 'ofmpub.epa.gov')
 baddates = sorted(rawcfg['baddates'])
 tropomi_utc_hours = sorted(rawcfg['hours']['tropomi'])

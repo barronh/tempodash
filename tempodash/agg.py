@@ -1,7 +1,7 @@
 __all__ = [
     'odrfit', 'linregresdf', 'agg', 'byloc',
     'weeklygrouper', 'monthlygrouper', 'lsthgrouper', 'hourlygrouper',
-    'szagrouper', 'cldgrouper',
+    'szagrouper', 'cldgrouper', 'allgrouper'
 ]
 
 import pandas as pd
@@ -133,7 +133,7 @@ def q3(ds):
     return ds.quantile(0.75)
 
 
-def agg(df, grouper, columns=None, xkey=None, ykey=None, orthogonal=False):
+def agg(df, grouper, columns=None, xkey=None, ykey=None, orthogonal=False, timekey=None):
     """
     Group and aggregate information adding quantiles and correlation
 
@@ -160,6 +160,16 @@ def agg(df, grouper, columns=None, xkey=None, ykey=None, orthogonal=False):
     Example
     -------
     """
+    from .util import getfirstkey
+    if timekey is None:
+        timekey = getfirstkey(df, '_time')
+    if xkey is not None and ykey is not None:
+        if 'bias' not in df.columns:
+            df['bias'] = df.eval(f'{ykey} - {xkey}')
+        if 'err' not in df.columns:
+            df['err'] = df['bias'].abs()
+        if 'sqerr' not in df.columns:
+            df['sqerr'] = df['err']**2
     if columns is None:
         columns = [
             k for k in df.columns
@@ -169,8 +179,8 @@ def agg(df, grouper, columns=None, xkey=None, ykey=None, orthogonal=False):
             )
         ]
     aggdict = {}
-    aggdict['tempo_time_start'] = ('tempo_time', 'min')
-    aggdict['tempo_time_end'] = ('tempo_time', 'max')
+    aggdict[f'{timekey}_start'] = (timekey, 'min')
+    aggdict[f'{timekey}_end'] = (timekey, 'max')
     for k in columns:
         aggdict.update({
             f'{k}_mean': (k, 'mean'),
@@ -181,11 +191,11 @@ def agg(df, grouper, columns=None, xkey=None, ykey=None, orthogonal=False):
             f'{k}_q3': (k, q3),
             f'{k}_q4': (k, 'max'),
         })
-    aggdict['count'] = ('tempo_time', 'count')
+    aggdict['count'] = (timekey, 'count')
     if df.shape[0] == 0:
         return pd.DataFrame(columns=list(aggdict))
     if grouper is None:
-        grouper = df['tempo_time'] > 0
+        grouper = df[timekey] > 0
 
     if callable(grouper):
         grouper = grouper(df)
@@ -227,8 +237,9 @@ def byloc(
 
 
 def weeklygrouper(df, t=None):
+    from .util import getfirstkey
     if t is None:
-        t = pd.to_datetime(df['tempo_time'], unit='s')
+        t = pd.to_datetime(df[getfirstkey(df, '_time')], unit='s')
     wkt = t.dt.to_period('W').dt.start_time + pd.to_timedelta(6, unit='d')
     isweekday = t.dt.dayofweek < 5
     wkt.loc[isweekday] -= pd.to_timedelta(2, unit='d')
@@ -236,8 +247,9 @@ def weeklygrouper(df, t=None):
 
 
 def monthlygrouper(df, t=None):
+    from .util import getfirstkey
     if t is None:
-        t = pd.to_datetime(df['tempo_time'], unit='s')
+        t = pd.to_datetime(df[getfirstkey(df, '_time')], unit='s')
     m = t.dt.to_period('M')
     return m
 
@@ -251,19 +263,29 @@ def cldgrouper(df, interval=0.1):
 
 
 def lsthgrouper(df, t=None):
-    off = df['tempo_lon'] / 15.
+    from .util import getfirstkey
+    try:
+        lk = getfirstkey(df, '_lon')
+    except:
+        lk = 'tempo_lon'
+    off = df[lk] / 15.
     if t is None:
-        t = pd.to_datetime(df['tempo_time'] + off * 3600, unit='s')
+        t = pd.to_datetime(df[getfirstkey(df, '_time')] + off * 3600, unit='s')
     else:
         t = t + pd.to_timedelta(off, unit='h')
     return t.dt.hour
 
 
 def hourlygrouper(df, t=None):
+    from .util import getfirstkey
     if t is None:
-        t = pd.to_datetime(df['tempo_time'], unit='s')
+        t = pd.to_datetime(df[getfirstkey(df, '_time')], unit='s')
     h = t.dt.floor('1h')
     return h
+
+
+def allgrouper(df):
+    return pd.Series(['all'] * df.shape[0], index=df.index)
 
 
 def tempogrouper(df, ykey=None):
@@ -273,7 +295,12 @@ def tempogrouper(df, ykey=None):
             if ykey in df.columns:
                 break
         else:
-            raise KeyError('ykey not found')
+            if 'tropomi_offl_no2_sum' in df.columns and 'pandora_no2_total' in df.columns:
+                ykey = 'tropomi_offl_no2_sum'
+            elif 'tropomi_offl_hcho_total' in df.columns and 'pandora_hcho_total' in df.columns:
+                ykey = 'tropomi_offl_hcho_total'
+            else:
+                raise KeyError('ykey not found')
     edges = [
         0, 2e14, 4e14, 6e14, 8e14,
         1e15, 2e15, 4e15, 6e15, 8e15,

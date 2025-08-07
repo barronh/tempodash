@@ -1,4 +1,42 @@
-__all__ = ['depends']
+__all__ = ['depends', 'getfirstkey', 'getsource', 'getlabel']
+
+
+def getsource(key):
+    key = key.lower()
+    if key.startswith('tempo_'):
+        src = 'TEMPO'
+    elif key.startswith('tropomi_offl_'):
+        src = 'TropOMI'
+    elif key.startswith('pandora_'):
+        src = 'Pandora'
+    elif key.startswith('airnow_'):
+        src = 'AirNow'
+    else:
+        src = key.split('_')[0].title()
+    return src
+
+
+def getlabel(key):
+    if 'no2_sum' in key or 'no2_total' in key:
+        lbl = 'totNO2 [#/cm$^2$]'
+    elif 'no2_trop' in key:
+        lbl = 'tropNO2 [#/cm$^2$]'
+    elif 'hcho_total' in key:
+        lbl = 'totHCHO [#/cm$^2$]'
+    elif 'no2_sfc' in key:
+        lbl = 'sfcNO2 [ppb]'
+    else:
+        lbl = key
+    return lbl
+
+
+def getfirstkey(df, sfx):
+    availkeys = list(df.index.names) + list(df.columns)
+    for k in availkeys:
+        if k is not None and k.endswith(sfx):
+            return k
+    else:
+        raise KeyError(f'{sfx} not found')
 
 
 def depends(outpaths, inpaths, verbose=1):

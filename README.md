@@ -46,6 +46,8 @@ Report Links
 * [TEMPO vs TropOMI tropNO2](https://gaftp.epa.gov/Air/aqmg/bhenders/share/TEMPO/tropomi_offl_no2_trop_vs_tempo_no2_trop_summary.html)
 * [TEMPO vs Pandora totHCHO](https://gaftp.epa.gov/Air/aqmg/bhenders/share/TEMPO/pandora_hcho_total_vs_tempo_hcho_total_summary.html)
 * [TEMPO vs TropOMI totHCHO](https://gaftp.epa.gov/Air/aqmg/bhenders/share/TEMPO/tropomi_offl_hcho_total_vs_tempo_hcho_total_summary.html)
+* [TropOMI vs Pandora totNO2](https://gaftp.epa.gov/Air/aqmg/bhenders/share/TEMPO/pandora_no2_total_vs_tropomi_offl_no2_sum_summary.html)
+* [TropOMI vs Pandora totHCHO](https://gaftp.epa.gov/Air/aqmg/bhenders/share/TEMPO/pandora_hcho_total_vs_tropomi_offl_hcho_total_summary.html)
 
 ### Details
 
@@ -54,5 +56,5 @@ Report Links
 * [TEMPO vs TropOMI tropNO2](https://gaftp.epa.gov/Air/aqmg/bhenders/share/TEMPO/tropomi_offl_no2_trop_vs_tempo_no2_trop.html)
 * [TEMPO vs Pandora totHCHO](https://gaftp.epa.gov/Air/aqmg/bhenders/share/TEMPO/pandora_hcho_total_vs_tempo_hcho_total.html)
 * [TEMPO vs TropOMI totHCHO](https://gaftp.epa.gov/Air/aqmg/bhenders/share/TEMPO/tropomi_offl_hcho_total_vs_tempo_hcho_total.html)
-
-
+* [TropOMI vs Pandora totNO2](https://gaftp.epa.gov/Air/aqmg/bhenders/share/TEMPO/pandora_no2_total_vs_tropomi_offl_no2_sum.html)
+* [TropOMI vs Pandora totHCHO](https://gaftp.epa.gov/Air/aqmg/bhenders/share/TEMPO/pandora_hcho_total_vs_tropomi_offl_hcho_total.html)

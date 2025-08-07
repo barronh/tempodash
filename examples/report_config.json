@@ -1,0 +1,240 @@
+{
+    "comments": [
+        "report_config allows for updating markdown reports without modifying code.",
+        "there are five sections: xkeylabels, xkeysources, introduction,, bykeys, and plotopts",
+        "xkeylabels translate variable names to pretty labels.",
+        "xkeysources translate variable names to data source pretty names.",
+        "introduction items have the form content, style, xkeys.",
+        " - content is what should be shown.",
+        " - style must be a valid Word style https://python-docx.readthedocs.io/en/latest/user/styles-understanding.html Content is what should be shown.",
+        " - xkeys is a list of xkeys where this should be used (null=all).",
+        "bykeys has a list of plot suffixes to include in the report in order.",
+        " - suffixes are typically bycld, byweek, etc",
+        "plotopts is a list of dictionaries where each dictionary has:",
+        " - and an identifying plottype (aka suffix)",
+        " - a caption template to be used in the report,",
+        " - a figure width as a fraction of page,"
+    ],
+    "xkeylabels": {
+        "tropomi_offl_no2_sum": "totNO2",
+        "tropomi_offl_no2_trop": "tropNO2",
+        "tropomi_offl_hcho_total": "totNO2",
+        "pandora_no2_total": "totNO2",
+        "pandora_hcho_total": "totHCHO",
+        "airnow_no2_sfc": "sfcNO2"
+    },
+    "xkeysources": {
+        "tropomi_offl_no2_sum": "TropOMI (OFFL)",
+        "tropomi_offl_no2_trop": "TropOMI (OFFL)",
+        "tropomi_offl_hcho_total": "TropOMI (OFFL)",
+        "pandora_no2_total": "Pandora",
+        "pandora_hcho_total": "Pandora",
+        "airnow_no2_sfc": "AirNow"
+    },
+    "introduction": [
+        [
+            "This report has plots organized by analysis region for {source} {spc}. All data uses teh version 3 (v3) TEMPO data products. Except when evaluating the effect of cloud fraction, all TEMPO data has been filtered for effective cloud fraction less than 0.15 based on SAO recommendation at the GeoXO ACX May meeting. All data has also been filtered for high quality and having solar zenith angle less than 70 degrees",
+            "Normal", null
+        ],
+        [
+            "TropOMI intersections are any TropOMI pixel that overlaps a TEMPO pixel. Statistics (mean, std, quantiles) are all based on all intersections within the region.",
+            "Normal",
+            ["tropomi_offl_no2_sum", "tropomi_offl_no2_trop", "tropomi_offl_hcho_total"]
+        ],
+        [
+            "TEMPO totNO2 is the sum of tropospheric and stratspheric vertical columns.", "Normal",
+            ["tropomi_offl_no2_sum", "pandora_no2_total"]
+        ],
+        [
+            "TropOMI totNO2 is the sum of tropospheric and stratspheric vertical columns.", "Normal",
+            ["tropomi_offl_no2_sum"]
+        ],
+        [
+            "Pandora intersections are any TEMPO pixel that overlaps a 0.03 degree radius. Only intersections within 15 minutes of a TEMPO measurement are used. Statistics (mean, std, quantiles) are all based on each +-15 minute period or pooled data.", "Normal",
+            ["pandora_no2_total", "pandora_hcho_total"]
+        ],
+        [
+            "AirNow intersections are any TEMPO pixel that overlaps a monitor location. AirNow measurements integrated over an hour, and are compared to any TEMPO measurement within that hour. Statistics (mean, std, quantiles) are all based on hourly pairs or pairs pooled within the Ozone non-attainment bounding box.", "Normal",
+            ["airnow_no2_sfc"]
+        ],
+        [
+            "There is a major section for all sites and then a section for each site. Each section shows comparisons:",
+            "List Bullet", null
+        ],
+        [
+            "by month and week,", "List Bullet 2", null
+        ],
+        [
+            "by solar zenith angle and local standard hour,", "List Bullet 2", null
+        ],
+        [
+            "by TEMPO value, and", "List Bullet 2", null
+        ],
+        [
+            "by location (only for all sites section)", "List Bullet 2", null
+        ],
+        [
+            "For TropOMI, the by location figures are split to show Pandorastations in one figure and Nonattainment AReas in another", "List Bullet",
+            ["tropomi_offl_no2_sum", "tropomi_offl_no2_trop", "tropomi_offl_hcho_total"]
+        ],
+        [
+            "TropOMI intersections include both Pandora locations and Nonattainment Areas (NAA). However, the NAA are larger and include more pixels. The NAA have more area in the West, so the time-series including all sites are skewed by the western performance. By comparison, the Pandora are more in the East, so the time-series are any TropOMI pixel that overlaps a TEMPO pixel. Statistics (mean, std, quantiles) are all based on all intersections within the region.",
+            "Normal", null
+        ],
+        [
+            "Within each section, there are three types of plots:", "List Bullet", null
+        ],
+        [
+            "box plots showing the inter-quartile range,", "List Bullet 2", null
+        ],
+        [
+            "scatter plots summarizing the ability to characterize variation, and", "List Bullet 2", null
+        ],
+        [
+            "performance statistics plots.", "List Bullet 2", null
+        ],
+        [
+            "The performance statistics plots show:", "List Bullet", null
+        ],
+        [
+            "count by bin,", "List Bullet 2", null
+        ],
+        [
+            "correlation (R),", "List Bullet 2", null
+        ],
+        [
+            "Index of Agreement (IOA),", "List Bullet 2", null
+        ],
+        [
+            "Mean Bias (MB), Mean Absolute Bias (MAB), and Root Mean Squared Error (RMSE)", "List Bullet 2", null
+        ],
+        [
+            "MB, MAB, and RMSE are also shown as percents by normalizing to the reference mean", "List Bullet 2", null
+        ],
+        [
+            "Use section headers to navigate by Headings to a specific analysis region.", "Normal", null
+        ]
+    ],
+    "bykeys": [
+        "bymonth", "byweek", "byloc",
+        "bycld", "bytempo", "bysza", "bylsth"
+    ],
+    "plotopts": [
+        {
+            "plottype": "ts", "width": 0.98,
+            "caption": "Box (25%, 50%, 75%) and whisker (min/max) plots for by {bykey} at {label}."
+        },
+        {
+            "plottype": "tsnaa", "width": 0.98,
+            "caption": "Box (25%, 50%, 75%) and whisker (min/max) plots for by {bykey} at {label} at NAA."
+        },
+        {
+            "plottype": "tspandora", "width": 0.98,
+            "caption": "Box (25%, 50%, 75%) and whisker (min/max) plots for by {bykey} at {label} at Pandora."
+        },
+        {
+            "plottype": "tsweekday", "width": 0.98,
+            "caption": "Box (25%, 50%, 75%) and whisker (min/max) plots for by {bykey} at {label} for average weekday."
+        },
+        {
+            "plottype": "tsweekdaynaa", "width": 0.98,
+            "caption": "Box (25%, 50%, 75%) and whisker (min/max) plots for by {bykey} at {label} for average weekday at NAA."
+        },
+        {
+            "plottype": "tsweekdaypandora", "width": 0.98,
+            "caption": "Box (25%, 50%, 75%) and whisker (min/max) plots for by {bykey} at {label} for average weekday at Pandora."
+        },
+        {
+            "plottype": "tsweekend", "width": 0.98,
+            "caption": "Box (25%, 50%, 75%) and whisker (min/max) plots for by {bykey} at {label} for average weekend."
+        },
+        {
+            "plottype": "tsweekendnaa", "width": 0.98,
+            "caption": "Box (25%, 50%, 75%) and whisker (min/max) plots for by {bykey} at {label} for average weekend at NAA."
+        },
+        {
+            "plottype": "tsweekendpandora", "width": 0.98,
+            "caption": "Box (25%, 50%, 75%) and whisker (min/max) plots for by {bykey} at {label} for average weekend at Pandora."
+        },
+        {
+            "plottype": "scat", "width": 0.48,
+            "caption": "Scatter plot medians by {bykey} at {label} with linear regression fit. Each point has all pixels in a {bykey} and error bars represent the 25% to 75% range of those pixels."
+        },
+        {
+            "plottype": "scatweekday", "width": 0.48,
+            "caption": "Scatter plot medians by {bykey} at {label} with linear regression fit for weekdays only. Each point has all pixels in a {bykey} and error bars represent the 25% to 75% range of those pixels."
+        },
+        {
+            "plottype": "scatweekend", "width": 0.48,
+            "caption": "Scatter plot medians by {bykey} at {label} with linear regression fit weekends only. Each point has all pixels in a {bykey} and error bars represent the 25% to 75% range of those pixels."
+        },
+        {
+            "plottype": "scatnaa", "width": 0.48,
+            "caption": "Scatter plot medians by {bykey} at {label} with linear regression fit at NAA. Each point has all pixels in a {bykey} and error bars represent the 25% to 75% range of those pixels."
+        },
+        {
+            "plottype": "scatpandora", "width": 0.48,
+            "caption": "Scatter plot medians by {bykey} at {label} with linear regression fit Pandora. Each point has all pixels in a {bykey} and error bars represent the 25% to 75% range of those pixels."
+        },
+        {
+            "plottype": "stats", "width": 0.98,
+            "caption": "Count, correlation (R), index of agreement (IOA), mean bias (MB), mean absolute bias (MAB), root mean squared error (RMSE) at {label} by {bykey}. MB, MAB, and RMSE are also sown as percents normalized to the reference mean."
+        },
+        {
+            "plottype": "statsnaa", "width": 0.98,
+            "caption": "Count, correlation (R), index of agreement (IOA), mean bias (MB), mean absolute bias (MAB), root mean squared error (RMSE) at {label} by {bykey}. MB, MAB, and RMSE are also sown as percents normalized to the reference mean at NAA."
+        },
+        {
+            "plottype": "statspandora", "width": 0.98,
+            "caption": "Count, correlation (R), index of agreement (IOA), mean bias (MB), mean absolute bias (MAB), root mean squared error (RMSE) at {label} by {bykey}. MB, MAB, and RMSE are also sown as percents normalized to the reference mean at Pandora."
+        },
+        {
+            "plottype": "stats_pdf", "width": 0.9,
+            "caption": "Count by {bykey} at {label}."
+        },
+        {
+            "plottype": "stats_pdfnaa", "width": 0.98,
+            "caption": "Count by {bykey} at {label} at NAA."
+        },
+        {
+            "plottype": "stats_pdfpandora", "width": 0.98,
+            "caption": "Count by {bykey} at {label} at Pandora."
+        },
+        {
+            "plottype": "stats_rioa", "width": 0.9,
+            "caption": "Correlation (R) and index of agreement (IOA) by {bykey} at {label}."
+        },
+        {
+            "plottype": "stats_rioanaa", "width": 0.98,
+            "caption": "Correlation (R) and index of agreement (IOA) by {bykey} at {label} at NAA."
+        },
+        {
+            "plottype": "stats_rioapandora", "width": 0.98,
+            "caption": "Correlation (R) and index of agreement (IOA) by {bykey} at {label} at Pandora."
+        },
+        {
+            "plottype": "stats_err", "width": 0.9,
+            "caption": "Mean bias (MB), mean absolute bias (MAB), and root mean squared error (RMSE) by {bykey} at {label}."
+        },
+        {
+            "plottype": "stats_errnaa", "width": 0.98,
+            "caption": "Mean bias (MB), mean absolute bias (MAB), and root mean squared error (RMSE) by {bykey} at {label} at NAA."
+        },
+        {
+            "plottype": "stats_errpandora", "width": 0.98,
+            "caption": "Mean bias (MB), mean absolute bias (MAB), and root mean squared error (RMSE) by {bykey} at {label} at Pandora."
+        },
+        {
+            "plottype": "stats_pcterr", "width": 0.9,
+            "caption": "Mean bias (MBP), mean absolute bias (MABP), and root mean squared error (RMSEP) as percents  by {bykey} at {label}. Percents are normalized by the reference mean."
+        },
+        {
+            "plottype": "stats_pcterrnaa", "width": 0.98,
+            "caption": "Mean bias (MBP), mean absolute bias (MABP), and root mean squared error (RMSEP) as percents  by {bykey} at {label}. Percents are normalized by the reference mean at NAA."
+        },
+        {
+            "plottype": "stats_pcterrpandora", "width": 0.98,
+            "caption": "Mean bias (MBP), mean absolute bias (MABP), and root mean squared error (RMSEP) as percents  by {bykey} at {label}. Percents are normalized by the reference mean at Pandora."
+        }
+    ]
+}

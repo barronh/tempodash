@@ -23,9 +23,11 @@ def makeintx(spc, start_date, end_date, verbose=0, hourdf=None):
     tomi_store = intx.intxstore('tempo', 'tropomi_offl', spc)
     an_store = intx.intxstore('tempo', 'airnow', spc)
     pan_store = intx.intxstore('tempo', 'pandora', spc)
+    pant_store = intx.intxstore('tropomi_offl', 'pandora', spc)
     lasttomi = tomi_store.mostrecent()
     lastpan = pan_store.mostrecent()
-    lasts = [lasttomi, lastpan]
+    lastpant = pant_store.mostrecent()
+    lasts = [lasttomi, lastpan, lastpant]
     if spc == 'no2':
         lastan = an_store.mostrecent()
         lasts.append(lastan)
@@ -99,6 +101,15 @@ def makeintx(spc, start_date, end_date, verbose=0, hourdf=None):
                 print('pandora...', end='', flush=True)
             p.set_bdate(date)
             t.intx_append(p, store=pan_store, dt=900, **popts)
+            if verbose > 0:
+                t1 = _time.time()
+                print(f'{t1 - t0:.0f}s', end='.', flush=True)
+        if dopandora and dotropomi:
+            if verbose > 0:
+                t0 = _time.time()
+                print('pandora/tropomi...', end='', flush=True)
+            p.set_bdate(date)
+            tr.intx_append(p, store=pant_store, dt=900, **popts)
             if verbose > 0:
                 t1 = _time.time()
                 print(f'{t1 - t0:.0f}s', end='.', flush=True)

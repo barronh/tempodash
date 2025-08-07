@@ -1,13 +1,52 @@
-def getdatetag(df):
+def getdatetag(df, timekey=None):
+    """
+    Arguments
+    ---------
+    df : pandas.DataFrame
+        DataFrame with data having tempo_time_start and tempo_time_end
+    Returns
+    -------
+    tag : str
+        Start to end 'YYYY-MM-DD to YYYY-MM-DD'
+    """
     import pandas as pd
-    s = pd.to_datetime(df['tempo_time_start'].min(), unit='s')
-    e = pd.to_datetime(df['tempo_time_end'].max(), unit='s')
+    from .util import getfirstkey
+    timekey = getfirstkey(df, '_time_start').replace('_start', '')
+    s = pd.to_datetime(df[f'{timekey}_start'].min(), unit='s')
+    e = pd.to_datetime(df[f'{timekey}_end'].max(), unit='s')
     return f'{s:%F} to {e:%F}'
 
 
 def plot_summary_bars(
     bdf, xkey, subplot_kw=None, ax_kw=None, axx=None, x=None
 ):
+    """
+    Plot panels on axx (2, 2)
+    - (0, 0) : count,
+    - (0, 1) : R/IOA,
+    - (1, 0) : MB/MAB/RSME,
+    - (1, 1) : MBP/MABP/RSMEP,
+
+    Arguments
+    ---------
+    bdf : pandas.DataFrame
+        DataFrame with ykey and, if provided, named x column
+    xkey : str
+        Name of element from DataFrame
+    ax_kw : dict
+        Keywords to Axes
+    cbar_kw : dict
+        Keywords to colrobar
+    axx : array
+        Array of matplotlib.axes.Axes object to plot on
+    x : array-like
+        Location for bars
+
+    Returns
+    -------
+    ax : Axes
+        matplotlib.axes.Axes
+    """
     import matplotlib.pyplot as plt
     import numpy as np
     if x is None:
@@ -43,7 +82,7 @@ def plot_summary_bars(
     ax.set(ylim=(0, 1))
     off = gw / 3
     w = off * 0.9
-    ax = axx[1, 0]
+    ax = axx[1, 1]
     mab = bdf['err_mean']
     mabp = mab / bdf[f'{xkey}_mean'] * 100
     mb = bdf['bias_mean']
@@ -56,11 +95,11 @@ def plot_summary_bars(
     _ = ax.set(ylabel='Percentage Error [%]')
     if ax.get_ylim()[1] < 100:
         ax.yaxis.set_major_locator(plt.matplotlib.ticker.MultipleLocator(10))
-    ax = axx[1, 1]
+    ax = axx[1, 0]
     ax.bar(x=x - off, width=w, height=mab / 1e15, color='b', label='MAB')
     ax.bar(x=x + 0, width=w, height=mb / 1e15, color='purple', label='MB')
     ax.bar(x=x + off, width=w, height=rmse / 1e15, color='g', label='RMSE')
-    _ = ax.set(ylabel='Error [#/m$^2$ x 10$^{15}$]')
+    _ = ax.set(ylabel='Error [#/cm$^2$ x 10$^{15}$]')
     for ax in axx.ravel():
         ax.set_xticks(x)
         ax.set_xticklabels(xtl, rotation=90)
@@ -73,16 +112,41 @@ def plot_summary_bars(
 
 
 def plot_scatter(
-    scdf, ykey, xkey, c=None, source=None, ax_kw=None, cbar_kw=None, ax=None
+    scdf, ykey, xkey, c=None, ax_kw=None, cbar_kw=None, ax=None
 ):
+    """
+    Create a scatter plot with color and statistics
+
+    Arguments
+    ---------
+    scdf : pandas.DataFrame
+        DataFrame with ykey and, if provided, named x column
+    ykey : str
+        Name of element from DataFrame
+    xkey : str
+        Name of element from DataFrame
+    c : str
+        Name of element from DataFrame
+    ax_kw : dict
+        Keywords to Axes
+    cbar_kw : dict
+        Keywords to colrobar
+    ax : matplotlib.axes.Axes
+        Axes object to plot on
+
+    Returns
+    -------
+    ax : Axes
+        matplotlib.axes.Axes
+    """
     import matplotlib.pyplot as plt
     from .agg import odrfit
     from scipy.stats import linregress
-    if source is None:
-        print(f'WARN:: source inferred from {xkey}/{ykey} for plot_scatter')
-        source = xkey.split('_')[0].title()
+    from .util import getsource, getlabel
     if ax_kw is None:
         ax_kw = {}
+    ax_kw.setdefault('ylabel', f'{getsource(ykey)} {getlabel(ykey)}')
+    ax_kw.setdefault('xlabel', f'{getsource(xkey)} {getlabel(xkey)}')
     if cbar_kw is None:
         cbar_kw = {}
     y = scdf[f'{ykey}_q2']
@@ -123,23 +187,41 @@ def plot_scatter(
 
 
 def plot_weekdayweekend(
-    wmdf, ykey, xkey, source=None, ax_kw=None, subplots_kw=None
+    wmdf, ykey, xkey, ax_kw=None, subplots_kw=None, ysource=None
 ):
+    """
+    Plot boxplots with weekdays as one pair and weekends as another.
+
+    Arguments
+    ---------
+    wmdf : pandas.DataFrame
+        DataFrame with ykey and xkey column
+    ykey : str
+        Name of element from DataFrame
+    xkey : str
+        Name of element from DataFrame
+    ax_kw : dict
+        Keywords to Axes
+    subplot_kw : dict
+        Keywords to subplot
+
+    Returns
+    -------
+    ax : Axes
+        matplotlib.axes.Axes
+    """
     import matplotlib.pyplot as plt
     import pandas as pd
-    if source is None:
-        print(
-            f'WARN:: source inferred from {xkey}/{ykey} for'
-            + ' plot_weekdayweekend'
-        )
-        source = xkey.split('_')[0].title()
+    from .util import getfirstkey, getsource
+    source = getsource(xkey)
     if ax_kw is None:
         ax_kw = {}
     if subplots_kw is None:
         gskw = dict(left=0.025, right=0.99)
         subplots_kw = dict(figsize=(24, 3), gridspec_kw=gskw)
-    wdmdf = wmdf.query('tempo_time.dt.dayofweek < 5')
-    wemdf = wmdf.query('tempo_time.dt.dayofweek >= 5')
+    timekey = getfirstkey(wmdf, '_time')
+    wdmdf = wmdf.query(f'{timekey}.dt.dayofweek < 5')
+    wemdf = wmdf.query(f'{timekey}.dt.dayofweek >= 5')
     xd = wdmdf.index.astype('i8') / 3600e9 / 24
     dx = 0.6
     xe = wemdf.index.astype('i8') / 3600e9 / 24
@@ -150,10 +232,11 @@ def plot_weekdayweekend(
     fig, ax = plt.subplots(**subplots_kw)
     tmpopts = dict(x=xd, dx=dx, ax=ax, iqr=True, source=f'{source} Weekday')
     bdx, bdy = plot_boxs(wdmdf, ykey, xkey, **tmpopts)
-    bdy['boxes'][0].set_label('TEMPO Weekday')
+    ysrc = getsource(ykey)
+    bdy['boxes'][0].set_label(f'{ysrc} Weekday')
     tmpopts = dict(x=xe, dx=dx, ax=ax, source=f'{source} Weekend', iqr=True)
     bex, bey = plot_boxs(wemdf, ykey, xkey, **tmpopts)
-    bey['boxes'][0].set_label('TEMPO Weekend')
+    bey['boxes'][0].set_label(f'{ysrc} Weekend')
     for patch in bey['boxes']:
         patch.set_facecolor('pink')
     for patch in bex['boxes']:
@@ -168,18 +251,48 @@ def plot_weekdayweekend(
 
 
 def plot_ts(
-    tmdf, ykey, xkey, t=None, dt=None, source=None,
+    tmdf, ykey, xkey, t=None, dt=None,
     subplot_kw=None, ax_kw=None, ax=None
 ):
+    """
+    Plot a time-series of error bars
+
+    Arguments
+    ---------
+    tmdf : pandas.DataFrame
+        DataFrame with ykey and, if provided, named x column
+    ykey : str
+        Name of element from DataFrame
+    xkey : str
+        Name of element from DataFrame
+    t : list, str, or None
+        x-locations for the boxes or a named column (default index)
+    dt : int or None
+        defaults to median(x) / 4
+    subplot_kw : dict
+        Keywords to subplot
+    ax_kw : dict
+        Keywords to Axes
+    ax : matplotlib.axes.Axes
+        axes to plot on
+
+    Returns
+    -------
+    ax : Axes
+        matplotlib.axes.Axes
+    """
     import pandas as pd
     import matplotlib.pyplot as plt
-    if source is None:
-        print(f'WARN:: source inferred from {xkey}/{ykey} for plot_ts')
-        source = xkey.split('_')[0].title()
+    from .util import getsource
     if ax_kw is None:
         ax_kw = {}
     if t is None:
-        t = tmdf.index.get_level_values('tempo_time')
+        for tk in tmdf.index.names:
+            if tk.endswith('_time'):
+                break
+        else:
+            raise KeyError('time not found')
+        t = tmdf.index.get_level_values(tk)
     if dt is None:
         dt = t.diff().median()
 
@@ -192,8 +305,8 @@ def plot_ts(
         fig = ax.figure
 
     dt = pd.to_timedelta(dt) / 4
-    plot_iqr(tmdf, xkey, x=t - dt, color='k')
-    plot_iqr(tmdf, ykey, x=t, color='r', label='TEMPO')
+    plot_iqr(tmdf, xkey, x=t - dt, color='k', label=getsource(xkey))
+    plot_iqr(tmdf, ykey, x=t, color='r', label=getsource(ykey))
     ax.set(**ax_kw)
     ax.legend(ncol=2, loc='upper left')
     fig.text(0, 0, 'x', ha='right', va='top')
@@ -202,14 +315,39 @@ def plot_ts(
 
 
 def plot_iqrs(
-    df, ykey, xkey, x=None, dx=None, source=None,
+    df, ykey, xkey, x=None, dx=None,
     subplot_kw=None, ax_kw=None, ax=None, ycolor='r', xcolor='k'
 ):
+    """
+    Arguments
+    ---------
+    df : pandas.DataFrame
+        DataFrame with ykey and, if provided, named x column
+    ykey : str
+        Name of element from DataFrame
+    xkey : str
+        Name of element from DataFrame
+    x : list, str, or None
+        x-locations for the boxes or a named column (default index)
+    dx : int or None
+        defaults to median(x) / 4
+    subplot_kw : dict
+        Keywords to subplot
+    ax_kw : dict
+        Keywords to Axes
+    ycolor : str
+        Color for y elements
+    xcolor : str
+        Color for x elements
+
+    Returns
+    -------
+    ax : Axes
+        matplotlib.axes.Axes
+    """
     import numpy as np
     import matplotlib.pyplot as plt
-    if source is None:
-        print(f'WARN:: source inferred from {xkey}/{ykey} for plot_iqrs')
-        source = xkey.split('_')[0].title()
+    from .util import getsource
     if ax_kw is None:
         ax_kw = {}
     if x is None:
@@ -225,8 +363,8 @@ def plot_iqrs(
         fig, ax = plt.subplots(**subplot_kw)
     else:
         fig = ax.figure
-    ex, lx = plot_iqr(df, xkey, x=x - dx, color=xcolor, label=source)
-    ey, ly = plot_iqr(df, ykey, x=x, color=ycolor, label='TEMPO')
+    ex, lx = plot_iqr(df, xkey, x=x - dx, color=xcolor, label=getsource(xkey))
+    ey, ly = plot_iqr(df, ykey, x=x, color=ycolor, label=getsource(ykey))
     ax.set(**ax_kw)
     ax.legend(ncol=2, loc='upper left')
     fig.text(0, 0, 'x', ha='right', va='top')
@@ -235,6 +373,29 @@ def plot_iqrs(
 
 
 def plot_iqr(df, ykey, x=None, err_kw=None, minmax=False, ax=None, **plot_kw):
+    """
+    Arguments
+    ---------
+    df : pandas.DataFrame
+        DataFrame with ykey and, if provided, named x column
+    ykey : str
+        Name of element from DataFrame
+    x : list, str, or None
+        x-locations for the boxes or a named column (default index)
+    err_kw : dict
+        Options for errorbar command
+    minmax : bool
+        Show min/max not just interquartile
+    ax : Axes
+        matplotlib.axes.Axes object
+    plot_kw : dict
+        Options for plot commands
+
+    Returns
+    -------
+    lines : list
+        Elements returned from errorbar and plot
+    """
     import matplotlib.pyplot as plt
     if ax is None:
         ax = plt.gca()
@@ -269,6 +430,31 @@ def plot_box(
     df, ykey, x=None, ax=None, color=None, mediancolor=None, label=None,
     iqr=False, **kw
 ):
+    """
+    Plot a series of boxplots
+
+    Arguments
+    ---------
+    df : pandas.DataFrame
+        DataFrame with ykey and, if provided, named x column
+    ykey : str
+        Name of element from DataFrame
+    x : list, str, or None
+        x-locations for the boxes or a named column (default index)
+    ax : Axes
+        matplotlib.axes.Axes object
+    color : str
+        matplotlib named color or hex
+    mediancolor : str
+        matplotlib named color or hex
+    label : str
+        Name for boxes
+
+    Returns
+    -------
+    boxdict : dict
+        Elements returned from boxplot
+    """
     import matplotlib.pyplot as plt
     import numpy as np
     if ax is None:
@@ -296,23 +482,108 @@ def plot_box(
     return b
 
 
-def plot_boxs(df, ykey, xkey, x=None, source=None, ax=None, iqr=False, **kw):
+def plot_boxs(df, ykey, xkey, x=None, ax=None, iqr=False, source=None, **kw):
+    """
+    Plot a series of boxplots for ykey and xkey centered around x
+
+    Arguments
+    ---------
+    df : pandas.DataFrame
+        DataFrame with ykey and, if provided, named x column
+    ykey : str
+        Name of element from DataFrame
+    xkey : str
+        Name of element from DataFrame
+    x : list, str, or None
+        x-locations for the boxes or a named column (default index)
+    ax : Axes
+        matplotlib.axes.Axes object
+    iqr : bool
+        Show only the inter-quartile range (no whis)
+    source : str
+        Defaults to source of xkey
+    kw : dict
+        plot_box options
+
+    Returns
+    -------
+    boxx, boxy : dict, dict
+        Elements returned from boxplot
+    """
     import matplotlib.pyplot as plt
     import numpy as np
+    from .util import getsource
+    source = source or getsource(xkey)
     if ax is None:
         ax = plt.gca()
     if x is None:
         x = df.index.values
     elif isinstance(x, str):
         x = df[x]
-    if source is None:
-        print(f'WARN:: source inferred from {xkey}/{ykey} for plot_boxs')
-        source = xkey.split('_')[0].title()
     dx = kw.pop('dx', np.median(np.diff(x)) / 4)
     widths = kw.get('widths', dx * 2 * 0.9)
     cmnopts = dict(iqr=iqr, widths=widths, mediancolor='k', ax=ax)
-    bx = plot_box(df, xkey, x=x - dx, label=source, color='grey', **cmnopts)
-    by = plot_box(df, ykey, x=x + dx, label='TEMPO', color='r', **cmnopts)
+    xsrc = getsource(xkey)
+    ysrc = getsource(ykey)
+    bx = plot_box(df, xkey, x=x - dx, label=xsrc, color='grey', **cmnopts)
+    by = plot_box(df, ykey, x=x + dx, label=ysrc, color='r', **cmnopts)
     ax.set_xticks(x)
     ax.set_xticklabels([str(i) for i in x])
     return bx, by
+
+
+def plot_map(
+    df, ckey, xkey=None, ykey=None, title=None, clabel=None,
+    sortkey=None, ax=None, **kw
+):
+    """
+    Arguments
+    ---------
+    df : pandas.DataFrame
+        Data frame with ckey, xkey, and ykey
+    ckey : str
+        Key to color by
+    xkey : str
+        Defaults to tempo_lon
+    ykey : str
+        Defaults to tempo_lat
+    title : str
+        Defaults to ckey
+    clabel : str
+        Defaults to ckey
+    ax : matplotlib.axes.Axes
+        Axes to plot on (defaults to result from subplots)
+    Returns
+    -------
+    """
+    import pycno
+    import matplotlib.pyplot as plt
+    from .util import getfirstkey
+    if ax is None:
+        gskw = dict(left=0.05, right=0.95, top=0.925, bottom=0.1)
+        fig, ax = plt.subplots(figsize=(7, 4), dpi=300, gridspec_kw=gskw)
+    else:
+        fig = ax.figure
+    if sortkey is None:
+        sortkey = ckey
+    xkey = xkey or getfirstkey(df, '_lon')
+    ykey = ykey or getfirstkey(df, '_lat')
+    ax.set(facecolor='gainsboro')
+    plotdf = df.copy()
+    plotdf = plotdf.sort_values(by=sortkey)
+    c = plotdf[ckey]
+    x = plotdf[xkey]
+    y = plotdf[ykey]
+    title = title or ckey
+    clabel = clabel or ckey
+    ax.set(title=title)
+    pycno.cno().drawstates(zorder=1)
+    s = ax.scatter(x, y, c=c, zorder=2, **kw)
+    ax.set(xlim=(-125, -65), ylim=(17, 52))
+    tag = getdatetag(df)
+    ax.figure.text(0.8, 0, tag, ha='right', )
+    fig.colorbar(s, label=clabel)
+    ax.figure.text(0, 0, 'x', ha='right', va='top')
+    ax.figure.text(1, 1, 'x')
+    ax.figure.text(0, 1, 'x', ha='right')
+    return ax
